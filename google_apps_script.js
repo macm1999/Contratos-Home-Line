@@ -189,6 +189,48 @@ function doGet(e) {
         }
       }
 
+      // Filtrar contratos cuyos archivos realmente existan en Drive y no estén en la papelera
+      var validList = [];
+      for (var i = 0; i < list.length; i++) {
+        var c = list[i];
+        var fileStillExists = false;
+        try {
+          var code = c.code || "";
+          if (code) {
+            var files = folderDatos.getFilesByName(code + ".json");
+            if (files.hasNext()) {
+              var f = files.next();
+              if (!f.isTrashed()) {
+                fileStillExists = true;
+              }
+            }
+          }
+          if (!fileStillExists && c.fileName) {
+            var filesByName = mainFolder.searchFiles("title = '" + c.fileName + "' and trashed = false");
+            if (filesByName.hasNext()) {
+              fileStillExists = true;
+            }
+          }
+        } catch (checkErr) {
+          fileStillExists = true;
+        }
+
+        if (fileStillExists) {
+          validList.push(c);
+        }
+      }
+
+      // Si se detectaron archivos borrados manualmente en Drive, actualizar el archivo índice automáticamente
+      if (validList.length !== list.length) {
+        list = validList;
+        try {
+          var idxFiles = folderDatos.getFilesByName(ARCHIVO_INDICE_HISTORIAL);
+          if (idxFiles.hasNext()) {
+            idxFiles.next().setContent(JSON.stringify(list));
+          }
+        } catch (updateErr) {}
+      }
+
       var stats = calculateDriveHighestStats(list, folderLima, folderArequipa);
 
       var result = {
@@ -203,7 +245,22 @@ function doGet(e) {
     }
   }
 
-  // Acción 2: Obtener el contenido editable de un contrato por su código
+  // Acción 2: Vaciar el historial de contratos en Google Drive
+  if (action === "clear") {
+    try {
+      var mainFolder = getOrCreateFolder(DriveApp.getRootFolder(), NOMBRE_CARPETA_DESTINO);
+      var folderDatos = getOrCreateFolder(mainFolder, SUBFOLDER_DATOS);
+      var idxFiles = folderDatos.getFilesByName(ARCHIVO_INDICE_HISTORIAL);
+      if (idxFiles.hasNext()) {
+        idxFiles.next().setContent("[]");
+      }
+      return outputJson({ status: "success", message: "Historial de Google Drive vaciado con éxito", contracts: [] }, callback);
+    } catch (err) {
+      return outputJson({ status: "error", message: err.toString() }, callback);
+    }
+  }
+
+  // Acción 3: Obtener el contenido editable de un contrato por su código
   if (action === "get") {
     try {
       var code = e.parameter.code || "";

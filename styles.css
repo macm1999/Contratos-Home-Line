@@ -1456,4 +1456,120 @@ body {
   .greeting-name-editable {
     border-bottom: none !important;
   }
+
+  /* Corrección específica para iPhone / iPad (Safari iOS WebKit AirPrint) */
+  @supports (-webkit-touch-callout: none) {
+    .print-page-border {
+      display: none !important; /* Desactivar position:fixed que Safari iOS deforma con AirPrint */
+    }
+    .contract-page {
+      padding: 0 !important;
+      margin: 0 !important;
+      width: 100% !important;
+    }
+    .contract-frame {
+      border: 2.5px solid var(--primary-yellow) !important; /* Marco simétrico físico de 1cm en los 4 bordes */
+      padding: 6mm 7mm !important;
+      min-height: calc(297mm - 20mm) !important;
+      box-sizing: border-box !important;
+      margin: 0 !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   ADAPTACIÓN RESPONSIVA PARA CELULARES (IPHONE / ANDROID)
+   ========================================================================== */
+@media screen and (max-width: 768px) {
+  body {
+    padding: 6px 4px 60px 4px;
+    align-items: stretch;
+  }
+
+  /* Barra de herramientas compacta y limpia en pantalla móvil */
+  .toolbar-container {
+    position: sticky;
+    top: 4px;
+    padding: 6px 8px;
+    gap: 5px;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .toolbar-title {
+    font-size: 11.5px;
+  }
+
+  .segmented-selector {
+    padding: 2px;
+  }
+
+  .segment-btn {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .btn-tool {
+    padding: 5px 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .contract-updated-wrap {
+    padding: 4px 7px;
+    font-size: 10.5px;
+  }
+
+  .btn-gear {
+    padding: 5px 7px;
+    font-size: 13px;
+  }
+
+  .save-indicator {
+    font-size: 9.5px;
+  }
+
+  /* Vista de Lienzo de Hoja A4 en celular con scroll fluido */
+  .contract-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+    padding: 0 0 30px 0;
+  }
+
+  .contract-page {
+    /* Mantener dimensiones exactas A4 de 210mm para que las tablas no se aplasten */
+    min-width: 210mm;
+    margin: 0 auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Modales en pantalla móvil */
+  .modal-box-large {
+    width: 96%;
+    padding: 14px;
+    max-height: 92vh;
+  }
+
+  .highest-numbers-banner {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .history-filter-tabs {
+    gap: 4px;
+  }
+
+  .history-filter-btn {
+    padding: 4px 8px;
+    font-size: 10.5px;
+  }
 }

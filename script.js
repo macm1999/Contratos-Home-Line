@@ -12,6 +12,17 @@
   const DRIVE_KEY = 'homeline_drive_webhook_url';
   const todayStr = new Date().toISOString().split('T')[0];
 
+  // URL permanente pre-vinculada de Google Apps Script (Empresa Home Line)
+  const DEFAULT_DRIVE_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzegupwLcqbv7mrAts8yJAJLDVfEHVDreeueGjuelwSevpuQaQ-XLdkE9mIH-JhYUoB/exec';
+
+  function getDriveWebhookUrl() {
+    const saved = localStorage.getItem(DRIVE_KEY);
+    if (saved && saved.trim() && !saved.includes('/edit') && saved.includes('/exec')) {
+      return saved.trim();
+    }
+    return DEFAULT_DRIVE_WEBHOOK_URL;
+  }
+
   // Plantilla limpia inicial
   const BLANK_TEMPLATE = {
     docType: 'contrato', // 'contrato' | 'proforma'
@@ -734,21 +745,7 @@
   // GUARDAR AUTOMÁTICAMENTE EN GOOGLE DRIVE DE LA EMPRESA
   // ==========================================================
   btnSaveDrive.addEventListener('click', async () => {
-    let webhookUrl = localStorage.getItem(DRIVE_KEY);
-
-    if (!webhookUrl || !webhookUrl.trim()) {
-      openDriveModal();
-      return;
-    }
-
-    webhookUrl = webhookUrl.trim();
-
-    // Validar si pegaron la URL del editor de código (/edit)
-    if (webhookUrl.includes('/edit') || webhookUrl.includes('/projects/')) {
-      alert('⚠️ ATENCIÓN: Has configurado la URL del editor de código de Google Apps Script (termina en /edit).\n\nPara que los contratos se guarden en Google Drive, se necesita la URL de la "Aplicación web" (termina en /exec).\n\nVamos a abrir la configuración para que puedas verificarla.');
-      openDriveModal();
-      return;
-    }
+    const webhookUrl = getDriveWebhookUrl();
 
     saveContractData();
 
@@ -956,27 +953,24 @@
       }
     }
 
-    // 1. Evaluar lista provista (Google Drive)
+    // 1. Evaluar lista de contratos activos
     if (contractsList && Array.isArray(contractsList)) {
       contractsList.forEach(c => {
         evaluateText(c.code);
         evaluateText(c.fileName);
         evaluateText(c.title);
       });
+    } else {
+      // 2. Si no hay lista de Drive, evaluar historial local como respaldo
+      try {
+        const local = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
+        local.forEach(c => {
+          evaluateText(c.code);
+          evaluateText(c.fileName);
+          evaluateText(c.title);
+        });
+      } catch (e) {}
     }
-
-    // 2. Evaluar historial local
-    try {
-      const local = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
-      local.forEach(c => {
-        evaluateText(c.code);
-        evaluateText(c.fileName);
-        evaluateText(c.title);
-      });
-    } catch (e) {}
-
-    // 3. Evaluar título actual en pantalla si tiene código
-    evaluateText(contractTitle.value);
 
     const elHighestLima = document.getElementById('highestLimaCode');
     const elNextLima = document.getElementById('nextLimaCode');
@@ -1052,29 +1046,47 @@
     });
   });
 
+  const btnClearHistoryData = document.getElementById('btnClearHistoryData');
+  if (btnClearHistoryData) {
+    btnClearHistoryData.addEventListener('click', async () => {
+      const confirmClear = confirm(
+        '⚠️ ¿Estás seguro de vaciar el historial de contratos?\n\n' +
+        '• Se eliminarán los registros de la lista de Google Drive y de este navegador.\n' +
+        '• Esto reiniciará el historial a 0 contratos para comenzar desde limpio.'
+      );
+
+      if (!confirmClear) return;
+
+      saveIndicator.textContent = '⏳ Vaciando historial...';
+      const webhookUrl = getDriveWebhookUrl();
+
+      // Limpiar memoria local inmediatamente
+      cachedContractsList = [];
+      localStorage.setItem('homeline_local_history', '[]');
+      renderHistoryList([], false);
+
+      // Notificar a Google Apps Script para vaciar el índice en la nube
+      try {
+        const clearUrl = `${webhookUrl.trim()}${webhookUrl.includes('?') ? '&' : '?'}action=clear`;
+        await fetch(clearUrl, { method: 'GET', mode: 'no-cors' });
+      } catch (err) {
+        const probe = new Image();
+        probe.src = `${webhookUrl.trim()}${webhookUrl.includes('?') ? '&' : '?'}action=clear&t=` + Date.now();
+      }
+
+      saveIndicator.textContent = '🗑️ Historial de contratos vaciado con éxito';
+      historyCounterText.textContent = '0 contratos encontrados';
+      setTimeout(() => { saveIndicator.textContent = '💾 Guardado automático'; }, 3000);
+    });
+  }
+
   // Consultar historial en la nube (soporta Fetch directo con fallback a JSONP y copia local)
   async function loadSharedContractsHistory() {
-    const webhookUrl = localStorage.getItem(DRIVE_KEY);
+    const webhookUrl = getDriveWebhookUrl();
     historyListContainer.innerHTML = '<div class="history-empty-msg">⏳ Conectando con Google Drive y cargando contratos del equipo...</div>';
     historyCounterText.textContent = 'Cargando...';
 
     const localHistory = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
-
-    if (!webhookUrl || !webhookUrl.trim() || webhookUrl.includes('/edit')) {
-      if (localHistory.length > 0) {
-        cachedContractsList = localHistory;
-        renderHistoryList(cachedContractsList, true);
-        historyCounterText.textContent = `${localHistory.length} contrato(s) (Historial guardado localmente)`;
-      } else {
-        historyListContainer.innerHTML = `
-          <div class="history-empty-msg" style="color: #d97706;">
-            ⚠️ <strong>Google Drive no está configurado aún en este navegador.</strong><br><br>
-            Para consultar el historial compartido de la empresa, haz clic en el engranaje ⚙️ de la barra superior y guarda la URL de la Aplicación Web de Google Apps Script.
-          </div>`;
-        historyCounterText.textContent = 'Sin conexión a Drive';
-      }
-      return;
-    }
 
     // 1. Intentar primero con fetch() directo
     try {
@@ -1086,11 +1098,9 @@
         const resp = JSON.parse(text);
         if (resp && resp.status === 'success') {
           cachedContractsList = resp.contracts || [];
-          if (cachedContractsList.length === 0 && localHistory.length > 0) {
-            renderHistoryList(localHistory, true);
-          } else {
-            renderHistoryList(cachedContractsList, false);
-          }
+          // Sincronizar memoria local estrictamente con lo que existe en Drive
+          localStorage.setItem('homeline_local_history', JSON.stringify(cachedContractsList));
+          renderHistoryList(cachedContractsList, false);
           return;
         }
       } catch (jsonErr) {
@@ -1129,11 +1139,8 @@
 
       if (resp && resp.status === 'success') {
         cachedContractsList = resp.contracts || [];
-        if (cachedContractsList.length === 0 && localHistory.length > 0) {
-          renderHistoryList(localHistory, true);
-        } else {
-          renderHistoryList(cachedContractsList, false);
-        }
+        localStorage.setItem('homeline_local_history', JSON.stringify(cachedContractsList));
+        renderHistoryList(cachedContractsList, false);
       } else {
         handleHistoryError(localHistory, resp ? resp.message : null);
       }
@@ -1425,11 +1432,7 @@
     }
 
     // 2. Si no, consultar en Google Drive
-    const webhookUrl = localStorage.getItem(DRIVE_KEY);
-    if (!webhookUrl || webhookUrl.includes('/edit')) {
-      alert('Para descargar este contrato desde Google Drive, configura la URL de la Aplicación Web en ⚙️.');
-      return;
-    }
+    const webhookUrl = getDriveWebhookUrl();
 
     // Intento con fetch primero
     try {
@@ -1540,7 +1543,7 @@
   // MODAL DE CONFIGURACIÓN DE DRIVE
   // ==========================================================
   function openDriveModal() {
-    inputDriveWebhookUrl.value = localStorage.getItem(DRIVE_KEY) || '';
+    inputDriveWebhookUrl.value = getDriveWebhookUrl();
     testConnectionStatus.textContent = '';
     driveModal.style.display = 'flex';
   }
