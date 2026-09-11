@@ -1,0 +1,1459 @@
+/* ==========================================================================
+   ESTILOS - CONTRATOS Y PROFORMAS COMERCIALES HOME LINE (V4 + GOOGLE DRIVE)
+   Tipografía general: Arial
+   Tipografía del título: Times New Roman Bold
+   Paleta: Amarillo (#f5b300), Blanco, Negro, Gris (#eeeeee, #4a4a4a)
+   Botón Cloud Google Drive y Modal de Configuración
+   ========================================================================== */
+
+:root {
+  --primary-yellow: #f5b300;
+  --dark-yellow: #d49b00;
+  --dark-gray: #333333;
+  --header-gray: #4a4a4a;
+  --table-header-gray: #eeeeee;
+  --light-gray: #f8f9fa;
+  --border-black: #000000;
+  --bg-app: #eef2f5;
+  --card-bg: #ffffff;
+  --drive-blue: #1a73e8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--border-black);
+  padding: 15px 10px 80px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* ==========================================================================
+   BARRA DE HERRAMIENTAS SUPERIOR FLOTANTE
+   ========================================================================== */
+.toolbar-container {
+  position: sticky;
+  top: 10px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border: 1px solid #dcdfe6;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  max-width: 980px;
+  width: 96%;
+}
+
+.toolbar-title {
+  font-weight: bold;
+  font-size: 13.5px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Selector Contrato vs Proforma */
+.segmented-selector {
+  display: inline-flex;
+  background: #f1f3f5;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  gap: 2px;
+}
+
+.segment-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 13px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #495057;
+  transition: all 0.2s ease;
+}
+
+.segment-btn.active {
+  background: var(--primary-yellow);
+  color: #000000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.btn-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary-yellow);
+  color: #000000;
+}
+.btn-primary:hover {
+  background: var(--dark-yellow);
+  transform: translateY(-1px);
+}
+
+/* Botón Google Drive */
+.btn-cloud {
+  background: var(--drive-blue);
+  color: #ffffff;
+}
+.btn-cloud:hover {
+  background: #1557b0;
+  transform: translateY(-1px);
+}
+
+.btn-gear {
+  background: #eef2f5;
+  color: #555;
+  border: 1px solid #ced4da;
+  padding: 6px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn-gear:hover {
+  background: #dfe3e8;
+  color: #000;
+}
+
+.btn-danger {
+  background: #fdf2f2;
+  color: #d93025;
+  border: 1px solid #fad2cf;
+}
+.btn-danger:hover {
+  background: #fee;
+  border-color: #d93025;
+}
+
+.save-status {
+  font-size: 12px;
+  color: #2e7d32;
+  font-weight: 500;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   HOJA A4 DEL CONTRATO (FLUJO NATURAL ESTILO WORD)
+   ========================================================================== */
+.contract-container {
+  width: 100%;
+  max-width: 210mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.contract-page {
+  background: #ffffff;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 10mm; /* 1cm adentro del borde de la hoja */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Marco interior amarillo (1cm adentro de la hoja) */
+.contract-frame {
+  border: 2.5px solid var(--primary-yellow);
+  padding: 7mm 8mm;
+  min-height: calc(297mm - 20mm);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+/* ==========================================================================
+   TABLA ENVOLVENTE PARA IMPRESIÓN (ENCABEZADO REPETIDO AUTOMÁTICO)
+   ========================================================================== */
+.doc-page-wrapper {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.doc-page-wrapper > thead > tr > th {
+  padding: 0;
+  border: none;
+  font-weight: normal;
+  text-align: left;
+}
+
+.doc-page-wrapper > tbody > tr > td {
+  padding: 0;
+  border: none;
+  vertical-align: top;
+}
+
+/* ==========================================================================
+   ENCABEZADO DE LA EMPRESA
+   ========================================================================== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1.5px solid var(--border-black);
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+  width: 100%;
+}
+
+.header-logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.header-logo-img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
+.header-contact {
+  text-align: right;
+  font-size: 8.5px;
+  line-height: 1.25;
+  color: #111111;
+}
+
+.header-contact strong {
+  color: #000000;
+}
+
+/* ==========================================================================
+   TÍTULO PRINCIPAL (TIMES NEW ROMAN BOLD)
+   ========================================================================== */
+.contract-title-wrap {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.contract-title-input {
+  width: 100%;
+  text-align: center;
+  font-family: "Times New Roman", Times, serif !important;
+  font-size: 21px;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: #000000;
+  border-bottom: 1.5px dashed transparent;
+  transition: border 0.2s;
+  letter-spacing: 0.5px;
+}
+
+.contract-title-input:hover,
+.contract-title-input:focus {
+  border-bottom: 1.5px dashed var(--primary-yellow);
+  background: #fffdf5;
+}
+
+/* ==========================================================================
+   CUADRO DATOS DEL CLIENTE
+   ========================================================================== */
+.client-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.5px solid var(--border-black);
+  margin-bottom: 6px;
+  font-size: 9px;
+}
+
+.client-data-table th {
+  background: var(--table-header-gray);
+  color: #000000;
+  text-align: center;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2.5px 6px;
+  border: 1px solid var(--border-black);
+  letter-spacing: 0.5px;
+}
+
+.client-data-table td {
+  border: 1px solid var(--border-black);
+  padding: 2px 5px;
+  vertical-align: middle;
+}
+
+.client-data-table .cell-lbl {
+  font-weight: bold;
+  width: 16%;
+  background: #fbfbfb;
+  font-size: 8.5px;
+}
+
+.client-data-table .cell-val {
+  width: 34%;
+}
+
+.client-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 9px;
+  color: #000000;
+  padding: 1px 0;
+}
+
+.client-input:focus {
+  background: #fffdf5;
+}
+
+.client-input[type="date"] {
+  cursor: pointer;
+  font-size: 9px;
+}
+
+/* ==========================================================================
+   SALUDO INICIAL (SIN FLECHA EN SR. Y ESPACIO ADAPTABLE AL NOMBRE)
+   ========================================================================== */
+.greeting-section {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 3px 0 5px 0;
+  font-size: 10px;
+}
+
+/* Select de tratamiento SIN flecha */
+.greeting-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: transparent !important;
+  border: none !important;
+  font-size: 10px;
+  font-weight: bold;
+  color: #000000;
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  display: inline-block;
+  vertical-align: baseline;
+  width: auto;
+}
+
+.greeting-select::-ms-expand {
+  display: none;
+}
+
+/* Nombre del cliente editable con ancho adaptado al texto */
+.greeting-name-editable {
+  display: inline-block;
+  min-width: 60px;
+  border-bottom: 1px solid #000000;
+  outline: none;
+  font-size: 10px;
+  font-weight: bold;
+  color: #000000;
+  padding: 0 3px;
+  vertical-align: baseline;
+  transition: all 0.2s;
+}
+
+.greeting-name-editable:empty:before {
+  content: attr(data-placeholder);
+  color: #888;
+  font-weight: normal;
+}
+
+.greeting-name-editable:focus {
+  background: #fffdf5;
+  border-bottom: 1.5px solid var(--primary-yellow);
+}
+
+.greeting-text {
+  font-size: 10px;
+}
+
+/* ==========================================================================
+   TABLA DE ITEMS (ENCABEZADO GRIS, CUERPO BLANCO)
+   ========================================================================== */
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.5px solid var(--border-black);
+  font-size: 9.5px;
+  margin-bottom: 4px;
+}
+
+.items-table th {
+  background: var(--table-header-gray);
+  color: #000000;
+  border: 1.5px solid var(--border-black);
+  padding: 3px 5px;
+  font-weight: bold;
+  font-size: 9.5px;
+  text-align: center;
+}
+
+.items-table td {
+  background: #ffffff;
+  border: 1px solid var(--border-black);
+  padding: 3px 5px;
+  vertical-align: top;
+}
+
+.col-item {
+  width: 5%;
+  text-align: center;
+  font-weight: bold;
+}
+
+.col-detalle {
+  width: 69%;
+}
+
+.col-cantidad {
+  width: 10%;
+  text-align: center;
+}
+
+.col-precio {
+  width: 16%;
+  text-align: right;
+  font-weight: bold;
+}
+
+.col-actions {
+  width: 55px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   DESCRIPCIÓN + IMAGEN AL COSTADO DERECHO
+   ========================================================================== */
+.item-title-input {
+  width: 100%;
+  font-weight: bold;
+  font-size: 10px;
+  border: none;
+  outline: none;
+  background: transparent;
+  margin-bottom: 2px;
+  color: #000;
+}
+.item-title-input:focus {
+  background: #fffdf5;
+}
+
+.item-desc-and-img-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.item-desc-textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  font-size: 8.5px;
+  line-height: 1.25;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: vertical;
+  color: #111;
+  white-space: pre-wrap;
+}
+.item-desc-textarea:focus {
+  background: #fffdf5;
+}
+
+/* Columna de imagen al costado derecho */
+.item-img-col {
+  width: 80px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-upload-img-side {
+  width: 78px;
+  height: 52px;
+  border: 1.5px dashed #adb5bd;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #fbfbfb;
+  color: #555;
+  font-size: 8px;
+  gap: 2px;
+  transition: all 0.2s;
+  text-align: center;
+  padding: 2px;
+}
+.btn-upload-img-side:hover {
+  background: #fffdf5;
+  border-color: var(--primary-yellow);
+  color: #000;
+}
+
+.item-img-card {
+  position: relative;
+  display: inline-flex;
+}
+
+.item-side-img {
+  width: 78px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.btn-del-img-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #d93025;
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.btn-del-img-badge:hover {
+  background: #b3140a;
+}
+
+.item-qty-input {
+  width: 100%;
+  text-align: center;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 9.5px;
+  font-weight: bold;
+}
+
+.item-price-input {
+  width: 100%;
+  text-align: right;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.item-qty-input:focus,
+.item-price-input:focus {
+  background: #fffdf5;
+}
+
+/* ==========================================================================
+   BOTONES DE ACCIÓN: SUBIR (▲), BAJAR (▼) Y ELIMINAR (×)
+   ========================================================================== */
+.row-actions-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.btn-reorder {
+  border: none;
+  background: #f1f3f5;
+  color: #333;
+  width: 17px;
+  height: 20px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.btn-reorder:hover:not(:disabled) {
+  background: #e2e6ea;
+  color: #000;
+}
+.btn-reorder:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-mini-del {
+  color: #d93025;
+  background: #fee;
+  border: none;
+  border-radius: 3px;
+  width: 18px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-mini-del:hover {
+  background: #fdd;
+}
+
+.add-item-row {
+  margin: 4px 0 6px 0;
+}
+
+.btn-add-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fdf8e6;
+  color: #795548;
+  border: 1px dashed var(--primary-yellow);
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-add-item:hover {
+  background: #faecc2;
+}
+
+/* ==========================================================================
+   MOVILIDAD Y NO INCLUYE (FILAS ESPECIALES FINALES)
+   ========================================================================== */
+.special-item-options {
+  background: #fdfdfd;
+  padding: 2px 4px;
+  border-radius: 3px;
+  margin-top: 2px;
+  font-size: 8.5px;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8.5px;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   BLOQUE DE TOTALES Y LIQUIDACIÓN
+   ========================================================================== */
+.totals-block-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin: 4px 0 6px 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.totals-table {
+  border-collapse: collapse;
+  border: 1.5px solid var(--border-black);
+  font-size: 9.5px;
+  width: 220px;
+}
+
+.totals-table td {
+  border: 1px solid var(--border-black);
+  padding: 2px 5px;
+}
+
+.totals-lbl {
+  text-align: right;
+  font-weight: bold;
+  background: #fafafa;
+  width: 55%;
+}
+
+.totals-val {
+  text-align: right;
+  font-weight: bold;
+  width: 45%;
+}
+
+.totals-input {
+  width: 100%;
+  text-align: right;
+  font-size: 9.5px;
+  font-weight: bold;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+.totals-input:focus {
+  background: #fffdf5;
+}
+
+.discount-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8.5px;
+  color: #555;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   CONDICIONES COMERCIALES (CON BANCOS EN 3 COLUMNAS)
+   ========================================================================== */
+.box-condiciones {
+  border: 1.5px solid var(--border-black);
+  margin-bottom: 5px;
+  font-size: 8px;
+  line-height: 1.2;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.box-header-dark {
+  background: var(--header-gray);
+  color: #ffffff;
+  font-weight: bold;
+  text-align: center;
+  padding: 2px 5px;
+  font-size: 9px;
+  border-bottom: 1px solid var(--border-black);
+}
+
+.condiciones-body {
+  padding: 3px 5px;
+}
+
+.condiciones-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 3px 0;
+}
+
+.condiciones-list li {
+  margin-bottom: 1px;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.condicion-letra {
+  font-weight: bold;
+  min-width: 12px;
+}
+
+.condicion-text {
+  flex: 1;
+}
+
+.condicion-editable {
+  display: inline;
+  border-bottom: 1px dashed #888;
+  outline: none;
+}
+.condicion-editable:focus {
+  background: #fffdf5;
+  border-bottom: 1px solid var(--primary-yellow);
+}
+
+/* 3 Columnas de Bancos */
+.banks-three-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.bank-col-card {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 3px 4px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.bank-col-logo {
+  height: 22px;
+  width: auto;
+  max-width: 90%;
+  object-fit: contain;
+  margin-bottom: 2px;
+}
+
+.bank-col-info {
+  font-size: 7.5px;
+  line-height: 1.2;
+  width: 100%;
+}
+
+.bank-col-info strong {
+  color: #000;
+  font-size: 8px;
+  display: block;
+}
+
+/* ==========================================================================
+   POLÍTICAS COMERCIALES
+   ========================================================================== */
+.box-politicas {
+  border: 1.5px solid var(--border-black);
+  font-size: 7.5px;
+  line-height: 1.15;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.box-header-light {
+  background: #f5f0e6;
+  color: #000000;
+  font-weight: bold;
+  text-align: center;
+  padding: 2px 5px;
+  font-size: 8.5px;
+  border-bottom: 1px solid var(--border-black);
+}
+
+.politicas-body {
+  padding: 3px 5px;
+}
+
+.politicas-body p {
+  margin-bottom: 1.5px;
+}
+
+.politicas-body ul {
+  padding-left: 11px;
+  margin-bottom: 1.5px;
+}
+
+.politicas-body li {
+  margin-bottom: 0.5px;
+}
+
+/* ==========================================================================
+   MODAL DE CONFIGURACIÓN DE GOOGLE DRIVE
+   ========================================================================== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+}
+
+.modal-box {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  max-width: 580px;
+  width: 100%;
+  padding: 22px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #1a73e8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 0 5px;
+}
+.btn-close-modal:hover {
+  color: #000;
+}
+
+.modal-content-body {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #333;
+}
+
+.modal-step {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.modal-step-title {
+  font-weight: bold;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.modal-input-group {
+  margin-top: 15px;
+}
+
+.modal-input-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: #1e293b;
+}
+
+.modal-input-text {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+}
+.modal-input-text:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+/* Interruptor de Contrato Actualizado en la barra superior */
+.contract-updated-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: bold;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.contract-updated-wrap:hover {
+  background: #f1f5f9;
+}
+
+.contract-updated-wrap.active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.contract-updated-wrap input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #d97706;
+}
+
+.badge-updated {
+  display: inline-block;
+  font-size: 9px;
+  text-transform: uppercase;
+  background: #d97706;
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 3px;
+  letter-spacing: 0.5px;
+}
+
+/* Botón Historial de Contratos */
+.btn-history {
+  background: #0f766e;
+  color: #ffffff;
+}
+.btn-history:hover {
+  background: #115e59;
+  transform: translateY(-1px);
+}
+
+/* Modal de Historial Ampliado */
+.modal-box-large {
+  max-width: 680px;
+  width: 95%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.history-search-input {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+}
+.history-search-input:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+}
+
+.history-filter-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.history-filter-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+
+.history-filter-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+.history-filter-btn.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.25);
+}
+
+.history-filter-btn.btn-tab-lima.active {
+  background: #ca8a04;
+  border-color: #ca8a04;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(202, 138, 4, 0.25);
+}
+
+.history-filter-btn.btn-tab-arequipa.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
+.history-filter-btn.btn-tab-proforma.active {
+  background: #7e22ce;
+  border-color: #7e22ce;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(126, 34, 206, 0.25);
+}
+
+.filter-count {
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.history-filter-btn.active .filter-count {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+.history-list-container {
+  overflow-y: auto;
+  max-height: 48vh;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.history-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+  gap: 10px;
+}
+
+.history-item-row:hover {
+  background: #f8fafc;
+}
+
+.history-item-row:last-child {
+  border-bottom: none;
+}
+
+.history-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.history-code-badge {
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.badge-lima {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.badge-arequipa {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-proforma {
+  background: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+.history-client-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 12.5px;
+}
+
+.history-meta-sub {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  gap: 12px;
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-load-contract {
+  background: #0f766e;
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-load-contract:hover {
+  background: #0d9488;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+}
+
+/* Banner de Números de Contrato Más Altos (Lima y Arequipa) */
+.highest-numbers-banner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.highest-stat-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 11px 13px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.highest-stat-card.card-lima {
+  border: 1.5px solid #fde047;
+  background: linear-gradient(135deg, #fefce8 0%, #ffffff 100%);
+}
+
+.highest-stat-card.card-arequipa {
+  border: 1.5px solid #93c5fd;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #334155;
+  margin-bottom: 2px;
+}
+
+.city-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-lima { background: #ca8a04; }
+.dot-arequipa { background: #2563eb; }
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+}
+
+.stat-lbl {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.stat-val {
+  font-size: 12.5px;
+  font-weight: bold;
+}
+.text-lima { color: #854d0e; }
+.text-arequipa { color: #1d4ed8; }
+
+.stat-row.highlight-next {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e1;
+  margin-top: 2px;
+}
+
+.btn-use-correlative {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #0f766e;
+  color: #ffffff;
+  border: none;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.15s ease;
+}
+.btn-use-correlative:hover {
+  background: #0d9488;
+  transform: translateY(-1px);
+}
+
+.badge-use {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  text-transform: uppercase;
+}
+
+.history-empty-msg {
+  text-align: center;
+  padding: 30px 15px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   REGLAS DE IMPRESIÓN A4 NATURAL (COMO WORD CON MARCO Y ENCABEZADO)
+   ========================================================================== */
+.print-page-border {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm; /* Exactamente 1cm desde el borde exterior de la hoja */
+  }
+
+  html, body {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Marco amarillo que se repite en CADA página impresa a 1cm del borde */
+  .print-page-border {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: 2.5px solid var(--primary-yellow) !important;
+    box-sizing: border-box !important;
+    pointer-events: none !important;
+    z-index: 99999 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .contract-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .contract-page {
+    width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .contract-frame {
+    border: none !important; /* El borde fijo print-page-border toma el control en print */
+    padding: 4mm 6mm !important;
+    height: auto !important;
+  }
+
+  /* Tabla envolvente que repite el encabezado en cada página de impresión */
+  .doc-page-wrapper {
+    width: 100% !important;
+  }
+
+  .doc-page-wrapper > thead {
+    display: table-header-group !important; /* Se repite automáticamente en cada nueva página */
+  }
+
+  /* Evitar cortes abruptos en bloques enteros */
+  .box-politicas,
+  .box-condiciones,
+  .totals-block-wrap,
+  .items-table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Quitar bordes de inputs en impresión */
+  input, textarea, select {
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    resize: none !important;
+  }
+
+  .contract-title-input {
+    border-bottom: none !important;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .greeting-select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    border: none !important;
+    outline: none !important;
+  }
+
+  .greeting-name-editable {
+    border-bottom: none !important;
+  }
+}

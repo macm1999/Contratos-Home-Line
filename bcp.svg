@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 50" width="160" height="50">
+  <rect width="160" height="50" rx="6" fill="#002A8F"/>
+  <!-- Left orange chevron -->
+  <path d="M16 25 L26 14 L30 17.5 L23.5 25 L30 32.5 L26 36 Z" fill="#FF7800"/>
+  <!-- BCP white bold italic letters -->
+  <text x="36" y="33" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-style="italic" font-size="22" fill="#FFFFFF" letter-spacing="1">BCP</text>
+  <!-- Right orange chevron -->
+  <path d="M102 25 L92 14 L88 17.5 L94.5 25 L88 32.5 L92 36 Z" fill="#FF7800"/>
+</svg>
