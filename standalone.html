@@ -673,6 +673,81 @@ body {
 }
 
 /* ==========================================================================
+   NOTA TÉCNICA / HORARIO DE INSTALACIÓN (FILA SIN NÚMERO)
+   ========================================================================== */
+.row-nota-tecnica {
+  background: #ffffff;
+}
+
+.nota-tecnica-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.nota-tecnica-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-insert-horario {
+  background: #fefce8;
+  color: #854d0e;
+  border: 1px dashed #ca8a04;
+  border-radius: 4px;
+  font-size: 8.5px;
+  font-weight: bold;
+  padding: 2px 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+.btn-insert-horario:hover {
+  background: #fef08a;
+  border-color: #a16207;
+  color: #713f12;
+}
+
+.btn-clear-nota {
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 600;
+  padding: 1px 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-clear-nota:hover {
+  background: #fee2e2;
+}
+
+.input-nota-tecnica {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 8.5px;
+  line-height: 1.35;
+  color: #1e293b;
+  font-family: Arial, Helvetica, sans-serif;
+  resize: vertical;
+  min-height: 24px;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+.input-nota-tecnica:focus {
+  outline: none;
+  border-color: #f5b300;
+  background: #fffdf5;
+}
+
+/* ==========================================================================
    MOVILIDAD Y NO INCLUYE (FILAS ESPECIALES FINALES)
    ========================================================================== */
 .special-item-options {
@@ -1464,6 +1539,21 @@ body {
     border-bottom: none !important;
   }
 
+  /* Nota Técnica en impresión */
+  .row-nota-tecnica.is-empty-print {
+    display: none !important;
+  }
+  .input-nota-tecnica {
+    border: none !important;
+    padding: 0 !important;
+    resize: none !important;
+    font-size: 8.5px !important;
+    line-height: 1.35 !important;
+    background: transparent !important;
+    color: #000000 !important;
+    height: auto !important;
+  }
+
   /* Corrección específica para iPhone / iPad (Safari iOS WebKit AirPrint) */
   @supports (-webkit-touch-callout: none) {
     .print-page-border {
@@ -1746,8 +1836,29 @@ body {
                     <!-- Items dinámicos con foto al costado derecho y botones subir/bajar -->
                   </tbody>
 
-                  <!-- Filas Especiales Finales: Movilidad y No Incluye -->
+                  <!-- Filas Especiales Finales: Nota Técnica, Movilidad y No Incluye -->
                   <tbody id="tbodySpecialItems">
+                    <!-- Fila de Anotaciones / Horario de Instalación (Sin número de item) -->
+                    <tr id="rowNotaTecnica" class="row-nota-tecnica">
+                      <td class="col-item col-item-nota" style="font-size: 8.5px; color: #64748b; font-weight: bold;">Nota</td>
+                      <td class="col-detalle">
+                        <div class="nota-tecnica-box">
+                          <div class="nota-tecnica-toolbar no-print">
+                            <button type="button" class="btn-insert-horario" id="btnInsertHorarioInstalacion" title="Insertar texto sugerido de horario de instalación">
+                              ⚡ Horario de instalación estándar
+                            </button>
+                            <button type="button" class="btn-clear-nota" id="btnClearNotaTecnica" title="Borrar nota" style="display: none;">
+                              ✕ Borrar nota
+                            </button>
+                          </div>
+                          <textarea id="textNotaTecnica" class="input-nota-tecnica" placeholder="Observaciones de la visita técnica o notas de instalación (Opcional)..." rows="1"></textarea>
+                        </div>
+                      </td>
+                      <td class="col-cantidad">-</td>
+                      <td class="col-precio">-</td>
+                      <td class="col-actions no-print">-</td>
+                    </tr>
+
                     <!-- Penúltimo Item: Movilidad -->
                     <tr id="rowMovilidad">
                       <td class="col-item" id="numMovilidad">2</td>
@@ -1919,7 +2030,7 @@ body {
                         <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4NSA1MCIgd2lkdGg9Ijg1IiBoZWlnaHQ9IjUwIj4KICA8cmVjdCB3aWR0aD0iODUiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjNzQyMjg0Ii8+CiAgPHRleHQgeD0iMzgiIHk9IjMzIiBmb250LWZhbWlseT0iQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiNGRkZGRkYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnlhcGU8L3RleHQ+CiAgPGNpcmNsZSBjeD0iNzAiIGN5PSIxNyIgcj0iNC41IiBmaWxsPSIjMDBEMkI1Ii8+Cjwvc3ZnPg==" alt="Yape" class="bank-col-logo">
                         <div class="bank-col-info">
                           <strong>Fernando Huamani Amano</strong>
-                          <div>Yape al Nº: <strong>901969314</strong></div>
+                          <div>Yape al Nº: <strong>953847847</strong></div>
                         </div>
                       </div>
                     </div>
@@ -2177,7 +2288,8 @@ body {
     discountEnabled: false,
     discountAmount: '0.00',
     adelantoAmount: '0.00',
-    condAdelantoPct: '20%'
+    condAdelantoPct: '20%',
+    notaTecnica: ''
   };
 
   let contractData = loadContractData();
@@ -2215,7 +2327,24 @@ body {
   const numNoIncluye = document.getElementById('numNoIncluye');
   const textNoIncluye = document.getElementById('textNoIncluye');
   const chkNoIncBoxes = document.querySelectorAll('.chk-no-inc');
-  const inputNoIncluyeExtra = document.getElementById('inputNoIncluyeExtra');
+  // Nota Técnica / Horario de Instalación
+  const rowNotaTecnica = document.getElementById('rowNotaTecnica');
+  const textNotaTecnica = document.getElementById('textNotaTecnica');
+  const btnInsertHorarioInstalacion = document.getElementById('btnInsertHorarioInstalacion');
+  const btnClearNotaTecnica = document.getElementById('btnClearNotaTecnica');
+  const TEXTO_HORARIO_ESTANDAR = 'La instalación tendrá una duración aproximada de 1-2 días, en un horario de 10:00 a. m. a 5:00 p. m. durante cada jornada.';
+
+  function updateNotaTecnicaState() {
+    if (!textNotaTecnica || !rowNotaTecnica) return;
+    const val = textNotaTecnica.value.trim();
+    if (val) {
+      rowNotaTecnica.classList.remove('is-empty-print');
+      if (btnClearNotaTecnica) btnClearNotaTecnica.style.display = 'inline-block';
+    } else {
+      rowNotaTecnica.classList.add('is-empty-print');
+      if (btnClearNotaTecnica) btnClearNotaTecnica.style.display = 'none';
+    }
+  }
 
   // Totales
   const valSubtotal = document.getElementById('valSubtotal');
@@ -2298,6 +2427,9 @@ body {
     contractData.movilidad.qty = qtyMovilidad.value;
     contractData.movilidad.price = formatTwoDecimals(priceMovilidad.value);
 
+    if (textNotaTecnica) {
+      contractData.notaTecnica = textNotaTecnica.value;
+    }
     contractData.discountAmount = formatTwoDecimals(inputDescuento.value);
     contractData.adelantoAmount = formatTwoDecimals(inputAdelanto.value);
     contractData.condAdelantoPct = condAdelantoPct.textContent.trim();
@@ -2378,12 +2510,26 @@ body {
     }
     updateNoIncluyeText();
 
+    // Nota técnica
+    if (textNotaTecnica) {
+      textNotaTecnica.value = contractData.notaTecnica || '';
+      autoResizeTextarea(textNotaTecnica);
+      updateNotaTecnicaState();
+    }
+
     // Descuento
     const hasDiscount = !!contractData.discountEnabled;
     chkEnableDiscount.checked = hasDiscount;
     chkDescuento.checked = hasDiscount;
     inputDescuento.value = formatTwoDecimals(contractData.discountAmount || '0.00');
-    inputAdelanto.value = formatTwoDecimals(contractData.adelantoAmount || '0.00');
+
+    // Recuperar adelanto asegurando compatibilidad con cualquier variante
+    const rawAdelanto = (contractData.adelantoAmount !== undefined && contractData.adelantoAmount !== null && contractData.adelantoAmount !== '')
+      ? contractData.adelantoAmount
+      : (contractData.adelanto ?? contractData.inputAdelanto ?? contractData.montoAdelanto ?? contractData.valAdelanto ?? '0.00');
+    contractData.adelantoAmount = formatTwoDecimals(rawAdelanto);
+    inputAdelanto.value = contractData.adelantoAmount;
+
     updateDiscountVisibility(hasDiscount);
 
     // Condiciones comerciales (% de adelanto)
@@ -2393,64 +2539,99 @@ body {
     renderItemsTable();
     recalculateTotals();
 
-    // Sincronización automática del primer nombre en el saludo ("Estimado Sr. [PrimerNombre]")
-    function autoSyncGreetingName() {
-      let nameVal = (clientAttention.value.trim() || clientCompany.value.trim());
-      // Limpiar prefijos de tratamiento duplicados
-      nameVal = nameVal.replace(/^(Sr\.|Sra\.|Srta\.|Ing\.|Arq\.|Lic\.|Dr\.|Dra\.|Don|Doña)\s+/i, '').trim();
-      // Extraer únicamente el PRIMER NOMBRE (ej. "Marlon" de "Marlon Andrew Chepe Marino")
-      const firstName = nameVal ? nameVal.split(/\s+/)[0] : '';
-      greetingName.textContent = firstName;
-      contractData.greetingName = firstName;
-      saveContractData();
-    }
+    // Registrar eventos estáticos una sola vez
+    if (!window._formListenersAttached) {
+      window._formListenersAttached = true;
 
-    clientAttention.addEventListener('input', () => {
-      autoSyncGreetingName();
-    });
-
-    clientCompany.addEventListener('input', () => {
-      if (!clientAttention.value.trim()) {
-        autoSyncGreetingName();
+      // Eventos de Nota Técnica / Horario
+      if (btnInsertHorarioInstalacion) {
+        btnInsertHorarioInstalacion.addEventListener('click', () => {
+          if (textNotaTecnica) {
+            textNotaTecnica.value = TEXTO_HORARIO_ESTANDAR;
+            autoResizeTextarea(textNotaTecnica);
+            updateNotaTecnicaState();
+            saveContractData();
+          }
+        });
       }
-    });
 
-    // Guardar al editar directamente el nombre del saludo
-    greetingName.addEventListener('input', () => {
-      contractData.greetingName = greetingName.textContent;
-      saveContractData();
-    });
+      if (btnClearNotaTecnica) {
+        btnClearNotaTecnica.addEventListener('click', () => {
+          if (textNotaTecnica) {
+            textNotaTecnica.value = '';
+            autoResizeTextarea(textNotaTecnica);
+            updateNotaTecnicaState();
+            saveContractData();
+          }
+        });
+      }
 
-    greetingTitle.addEventListener('change', () => {
-      contractData.greetingTitle = greetingTitle.value;
-      saveContractData();
-    });
-
-    // Formatear a 2 decimales en inputs al salir (blur)
-    [priceMovilidad, inputDescuento, inputAdelanto].forEach(inp => {
-      inp.addEventListener('blur', () => {
-        inp.value = formatTwoDecimals(inp.value);
-        recalculateTotals();
-        saveContractData();
-      });
-    });
-
-    // Eventos en campos principales
-    [
-      contractTitle, clientCompany, clientDoc, clientAttention,
-      clientAddress, clientService, clientIssueDate, clientContact,
-      clientDeliveryDate, greetingTitle,
-      qtyMovilidad, priceMovilidad, inputDescuento, inputAdelanto
-    ].forEach(input => {
-      if (input) {
-        input.addEventListener('input', () => {
-          recalculateTotals();
+      if (textNotaTecnica) {
+        textNotaTecnica.addEventListener('input', () => {
+          autoResizeTextarea(textNotaTecnica);
+          updateNotaTecnicaState();
           saveContractData();
         });
       }
-    });
 
-    condAdelantoPct.addEventListener('input', saveContractData);
+      // Sincronización automática del primer nombre en el saludo ("Estimado Sr. [PrimerNombre]")
+      function autoSyncGreetingName() {
+        let nameVal = (clientAttention.value.trim() || clientCompany.value.trim());
+        nameVal = nameVal.replace(/^(Sr\.|Sra\.|Srta\.|Ing\.|Arq\.|Lic\.|Dr\.|Dra\.|Don|Doña)\s+/i, '').trim();
+        const firstName = nameVal ? nameVal.split(/\s+/)[0] : '';
+        greetingName.textContent = firstName;
+        contractData.greetingName = firstName;
+        saveContractData();
+      }
+
+      clientAttention.addEventListener('input', autoSyncGreetingName);
+
+      clientCompany.addEventListener('input', () => {
+        if (!clientAttention.value.trim()) {
+          autoSyncGreetingName();
+        }
+      });
+
+      greetingName.addEventListener('input', () => {
+        contractData.greetingName = greetingName.textContent;
+        saveContractData();
+      });
+
+      greetingTitle.addEventListener('change', () => {
+        contractData.greetingTitle = greetingTitle.value;
+        saveContractData();
+      });
+
+      // Formatear a 2 decimales en inputs al salir (blur)
+      [priceMovilidad, inputDescuento, inputAdelanto].forEach(inp => {
+        if (inp) {
+          inp.addEventListener('blur', () => {
+            inp.value = formatTwoDecimals(inp.value);
+            recalculateTotals();
+            saveContractData();
+          });
+        }
+      });
+
+      // Eventos en campos principales
+      [
+        contractTitle, clientCompany, clientDoc, clientAttention,
+        clientAddress, clientService, clientIssueDate, clientContact,
+        clientDeliveryDate, greetingTitle,
+        qtyMovilidad, priceMovilidad, inputDescuento, inputAdelanto
+      ].forEach(input => {
+        if (input) {
+          input.addEventListener('input', () => {
+            recalculateTotals();
+            saveContractData();
+          });
+        }
+      });
+
+      if (condAdelantoPct) {
+        condAdelantoPct.addEventListener('input', saveContractData);
+      }
+    }
 
     // Cargar URL guardada en el modal de Drive
     const savedDriveUrl = localStorage.getItem(DRIVE_KEY);
@@ -3256,7 +3437,18 @@ body {
       cleanup();
 
       if (resp && resp.status === 'success') {
-        cachedContractsList = resp.contracts || [];
+        const driveContracts = resp.contracts || [];
+        const existingLocal = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
+
+        // Conservar contractData local si ya lo tenemos guardado
+        cachedContractsList = driveContracts.map(dc => {
+          const localMatch = existingLocal.find(el => el.code === dc.code && el.contractData);
+          if (localMatch) {
+            return Object.assign({}, dc, { contractData: localMatch.contractData });
+          }
+          return dc;
+        });
+
         localStorage.setItem('homeline_local_history', JSON.stringify(cachedContractsList));
         renderHistoryList(cachedContractsList, false);
       } else {
@@ -3602,8 +3794,30 @@ body {
   // Aplicar datos cargados al formulario y activar modo Actualizado
   function applyLoadedContractData(loadedData, codeIdentifier) {
     try {
-      contractData = Object.assign({}, BLANK_TEMPLATE, loadedData);
+      let realData = loadedData;
+      if (loadedData && loadedData.contractData && typeof loadedData.contractData === 'object') {
+        realData = Object.assign({}, loadedData, loadedData.contractData);
+      }
+
+      // Normalizar adelantoAmount desde cualquier propiedad previa
+      const rawAdelanto = (realData.adelantoAmount !== undefined && realData.adelantoAmount !== null && realData.adelantoAmount !== '')
+        ? realData.adelantoAmount
+        : (realData.adelanto ?? realData.inputAdelanto ?? realData.montoAdelanto ?? realData.valAdelanto ?? '0.00');
+      realData.adelantoAmount = formatTwoDecimals(rawAdelanto);
+
+      // Preservar nota técnica
+      realData.notaTecnica = realData.notaTecnica || '';
+
+      contractData = Object.assign({}, BLANK_TEMPLATE, realData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(contractData));
+
+      // Cachear en el historial local para futuras aperturas instantáneas
+      const localHistory = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
+      const hIdx = localHistory.findIndex(h => h.code === codeIdentifier);
+      if (hIdx >= 0) {
+        localHistory[hIdx].contractData = JSON.parse(JSON.stringify(contractData));
+        localStorage.setItem('homeline_local_history', JSON.stringify(localHistory));
+      }
 
       // Activar automáticamente el modo "Contrato Actualizado"
       if (chkContractUpdated) {
@@ -3617,7 +3831,7 @@ body {
       closeHistoryModal();
 
       saveIndicator.textContent = `🔄 Contrato ${codeIdentifier || ''} cargado (Modo Actualizado)`;
-      alert(`¡Contrato "${codeIdentifier || ''}" cargado con éxito!\n\n• Se ha rellenado toda la información: cliente, items, descripciones, cantidades, precios y fotos.\n• Se activó automáticamente el modo "🔄 Contrato Actualizado" para que al descargar se guarde como versión actualizada.`);
+      alert(`¡Contrato "${codeIdentifier || ''}" cargado con éxito!\n\n• Se ha rellenado toda la información: cliente, items, notas, adelanto (${contractData.adelantoAmount}), saldos y fotos.\n• Se activó automáticamente el modo "🔄 Contrato Actualizado" para que al descargar se guarde como versión actualizada.`);
 
       setTimeout(() => {
         saveIndicator.textContent = '💾 Guardado automático';
@@ -3802,6 +4016,13 @@ body {
       inputAdelanto.value = '0.00';
       updateDiscountVisibility(false);
       condAdelantoPct.textContent = '20%';
+
+      // Resetear nota técnica
+      if (textNotaTecnica) {
+        textNotaTecnica.value = '';
+        autoResizeTextarea(textNotaTecnica);
+        updateNotaTecnicaState();
+      }
 
       // Resetear modo actualizado
       if (chkContractUpdated) chkContractUpdated.checked = false;

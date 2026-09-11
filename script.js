@@ -59,7 +59,8 @@
     discountEnabled: false,
     discountAmount: '0.00',
     adelantoAmount: '0.00',
-    condAdelantoPct: '20%'
+    condAdelantoPct: '20%',
+    notaTecnica: ''
   };
 
   let contractData = loadContractData();
@@ -97,7 +98,24 @@
   const numNoIncluye = document.getElementById('numNoIncluye');
   const textNoIncluye = document.getElementById('textNoIncluye');
   const chkNoIncBoxes = document.querySelectorAll('.chk-no-inc');
-  const inputNoIncluyeExtra = document.getElementById('inputNoIncluyeExtra');
+  // Nota Técnica / Horario de Instalación
+  const rowNotaTecnica = document.getElementById('rowNotaTecnica');
+  const textNotaTecnica = document.getElementById('textNotaTecnica');
+  const btnInsertHorarioInstalacion = document.getElementById('btnInsertHorarioInstalacion');
+  const btnClearNotaTecnica = document.getElementById('btnClearNotaTecnica');
+  const TEXTO_HORARIO_ESTANDAR = 'La instalación tendrá una duración aproximada de 1-2 días, en un horario de 10:00 a. m. a 5:00 p. m. durante cada jornada.';
+
+  function updateNotaTecnicaState() {
+    if (!textNotaTecnica || !rowNotaTecnica) return;
+    const val = textNotaTecnica.value.trim();
+    if (val) {
+      rowNotaTecnica.classList.remove('is-empty-print');
+      if (btnClearNotaTecnica) btnClearNotaTecnica.style.display = 'inline-block';
+    } else {
+      rowNotaTecnica.classList.add('is-empty-print');
+      if (btnClearNotaTecnica) btnClearNotaTecnica.style.display = 'none';
+    }
+  }
 
   // Totales
   const valSubtotal = document.getElementById('valSubtotal');
@@ -180,6 +198,9 @@
     contractData.movilidad.qty = qtyMovilidad.value;
     contractData.movilidad.price = formatTwoDecimals(priceMovilidad.value);
 
+    if (textNotaTecnica) {
+      contractData.notaTecnica = textNotaTecnica.value;
+    }
     contractData.discountAmount = formatTwoDecimals(inputDescuento.value);
     contractData.adelantoAmount = formatTwoDecimals(inputAdelanto.value);
     contractData.condAdelantoPct = condAdelantoPct.textContent.trim();
@@ -260,12 +281,26 @@
     }
     updateNoIncluyeText();
 
+    // Nota técnica
+    if (textNotaTecnica) {
+      textNotaTecnica.value = contractData.notaTecnica || '';
+      autoResizeTextarea(textNotaTecnica);
+      updateNotaTecnicaState();
+    }
+
     // Descuento
     const hasDiscount = !!contractData.discountEnabled;
     chkEnableDiscount.checked = hasDiscount;
     chkDescuento.checked = hasDiscount;
     inputDescuento.value = formatTwoDecimals(contractData.discountAmount || '0.00');
-    inputAdelanto.value = formatTwoDecimals(contractData.adelantoAmount || '0.00');
+
+    // Recuperar adelanto asegurando compatibilidad con cualquier variante
+    const rawAdelanto = (contractData.adelantoAmount !== undefined && contractData.adelantoAmount !== null && contractData.adelantoAmount !== '')
+      ? contractData.adelantoAmount
+      : (contractData.adelanto ?? contractData.inputAdelanto ?? contractData.montoAdelanto ?? contractData.valAdelanto ?? '0.00');
+    contractData.adelantoAmount = formatTwoDecimals(rawAdelanto);
+    inputAdelanto.value = contractData.adelantoAmount;
+
     updateDiscountVisibility(hasDiscount);
 
     // Condiciones comerciales (% de adelanto)
@@ -275,64 +310,99 @@
     renderItemsTable();
     recalculateTotals();
 
-    // Sincronización automática del primer nombre en el saludo ("Estimado Sr. [PrimerNombre]")
-    function autoSyncGreetingName() {
-      let nameVal = (clientAttention.value.trim() || clientCompany.value.trim());
-      // Limpiar prefijos de tratamiento duplicados
-      nameVal = nameVal.replace(/^(Sr\.|Sra\.|Srta\.|Ing\.|Arq\.|Lic\.|Dr\.|Dra\.|Don|Doña)\s+/i, '').trim();
-      // Extraer únicamente el PRIMER NOMBRE (ej. "Marlon" de "Marlon Andrew Chepe Marino")
-      const firstName = nameVal ? nameVal.split(/\s+/)[0] : '';
-      greetingName.textContent = firstName;
-      contractData.greetingName = firstName;
-      saveContractData();
-    }
+    // Registrar eventos estáticos una sola vez
+    if (!window._formListenersAttached) {
+      window._formListenersAttached = true;
 
-    clientAttention.addEventListener('input', () => {
-      autoSyncGreetingName();
-    });
-
-    clientCompany.addEventListener('input', () => {
-      if (!clientAttention.value.trim()) {
-        autoSyncGreetingName();
+      // Eventos de Nota Técnica / Horario
+      if (btnInsertHorarioInstalacion) {
+        btnInsertHorarioInstalacion.addEventListener('click', () => {
+          if (textNotaTecnica) {
+            textNotaTecnica.value = TEXTO_HORARIO_ESTANDAR;
+            autoResizeTextarea(textNotaTecnica);
+            updateNotaTecnicaState();
+            saveContractData();
+          }
+        });
       }
-    });
 
-    // Guardar al editar directamente el nombre del saludo
-    greetingName.addEventListener('input', () => {
-      contractData.greetingName = greetingName.textContent;
-      saveContractData();
-    });
+      if (btnClearNotaTecnica) {
+        btnClearNotaTecnica.addEventListener('click', () => {
+          if (textNotaTecnica) {
+            textNotaTecnica.value = '';
+            autoResizeTextarea(textNotaTecnica);
+            updateNotaTecnicaState();
+            saveContractData();
+          }
+        });
+      }
 
-    greetingTitle.addEventListener('change', () => {
-      contractData.greetingTitle = greetingTitle.value;
-      saveContractData();
-    });
-
-    // Formatear a 2 decimales en inputs al salir (blur)
-    [priceMovilidad, inputDescuento, inputAdelanto].forEach(inp => {
-      inp.addEventListener('blur', () => {
-        inp.value = formatTwoDecimals(inp.value);
-        recalculateTotals();
-        saveContractData();
-      });
-    });
-
-    // Eventos en campos principales
-    [
-      contractTitle, clientCompany, clientDoc, clientAttention,
-      clientAddress, clientService, clientIssueDate, clientContact,
-      clientDeliveryDate, greetingTitle,
-      qtyMovilidad, priceMovilidad, inputDescuento, inputAdelanto
-    ].forEach(input => {
-      if (input) {
-        input.addEventListener('input', () => {
-          recalculateTotals();
+      if (textNotaTecnica) {
+        textNotaTecnica.addEventListener('input', () => {
+          autoResizeTextarea(textNotaTecnica);
+          updateNotaTecnicaState();
           saveContractData();
         });
       }
-    });
 
-    condAdelantoPct.addEventListener('input', saveContractData);
+      // Sincronización automática del primer nombre en el saludo ("Estimado Sr. [PrimerNombre]")
+      function autoSyncGreetingName() {
+        let nameVal = (clientAttention.value.trim() || clientCompany.value.trim());
+        nameVal = nameVal.replace(/^(Sr\.|Sra\.|Srta\.|Ing\.|Arq\.|Lic\.|Dr\.|Dra\.|Don|Doña)\s+/i, '').trim();
+        const firstName = nameVal ? nameVal.split(/\s+/)[0] : '';
+        greetingName.textContent = firstName;
+        contractData.greetingName = firstName;
+        saveContractData();
+      }
+
+      clientAttention.addEventListener('input', autoSyncGreetingName);
+
+      clientCompany.addEventListener('input', () => {
+        if (!clientAttention.value.trim()) {
+          autoSyncGreetingName();
+        }
+      });
+
+      greetingName.addEventListener('input', () => {
+        contractData.greetingName = greetingName.textContent;
+        saveContractData();
+      });
+
+      greetingTitle.addEventListener('change', () => {
+        contractData.greetingTitle = greetingTitle.value;
+        saveContractData();
+      });
+
+      // Formatear a 2 decimales en inputs al salir (blur)
+      [priceMovilidad, inputDescuento, inputAdelanto].forEach(inp => {
+        if (inp) {
+          inp.addEventListener('blur', () => {
+            inp.value = formatTwoDecimals(inp.value);
+            recalculateTotals();
+            saveContractData();
+          });
+        }
+      });
+
+      // Eventos en campos principales
+      [
+        contractTitle, clientCompany, clientDoc, clientAttention,
+        clientAddress, clientService, clientIssueDate, clientContact,
+        clientDeliveryDate, greetingTitle,
+        qtyMovilidad, priceMovilidad, inputDescuento, inputAdelanto
+      ].forEach(input => {
+        if (input) {
+          input.addEventListener('input', () => {
+            recalculateTotals();
+            saveContractData();
+          });
+        }
+      });
+
+      if (condAdelantoPct) {
+        condAdelantoPct.addEventListener('input', saveContractData);
+      }
+    }
 
     // Cargar URL guardada en el modal de Drive
     const savedDriveUrl = localStorage.getItem(DRIVE_KEY);
@@ -1138,7 +1208,18 @@
       cleanup();
 
       if (resp && resp.status === 'success') {
-        cachedContractsList = resp.contracts || [];
+        const driveContracts = resp.contracts || [];
+        const existingLocal = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
+
+        // Conservar contractData local si ya lo tenemos guardado
+        cachedContractsList = driveContracts.map(dc => {
+          const localMatch = existingLocal.find(el => el.code === dc.code && el.contractData);
+          if (localMatch) {
+            return Object.assign({}, dc, { contractData: localMatch.contractData });
+          }
+          return dc;
+        });
+
         localStorage.setItem('homeline_local_history', JSON.stringify(cachedContractsList));
         renderHistoryList(cachedContractsList, false);
       } else {
@@ -1484,8 +1565,30 @@
   // Aplicar datos cargados al formulario y activar modo Actualizado
   function applyLoadedContractData(loadedData, codeIdentifier) {
     try {
-      contractData = Object.assign({}, BLANK_TEMPLATE, loadedData);
+      let realData = loadedData;
+      if (loadedData && loadedData.contractData && typeof loadedData.contractData === 'object') {
+        realData = Object.assign({}, loadedData, loadedData.contractData);
+      }
+
+      // Normalizar adelantoAmount desde cualquier propiedad previa
+      const rawAdelanto = (realData.adelantoAmount !== undefined && realData.adelantoAmount !== null && realData.adelantoAmount !== '')
+        ? realData.adelantoAmount
+        : (realData.adelanto ?? realData.inputAdelanto ?? realData.montoAdelanto ?? realData.valAdelanto ?? '0.00');
+      realData.adelantoAmount = formatTwoDecimals(rawAdelanto);
+
+      // Preservar nota técnica
+      realData.notaTecnica = realData.notaTecnica || '';
+
+      contractData = Object.assign({}, BLANK_TEMPLATE, realData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(contractData));
+
+      // Cachear en el historial local para futuras aperturas instantáneas
+      const localHistory = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
+      const hIdx = localHistory.findIndex(h => h.code === codeIdentifier);
+      if (hIdx >= 0) {
+        localHistory[hIdx].contractData = JSON.parse(JSON.stringify(contractData));
+        localStorage.setItem('homeline_local_history', JSON.stringify(localHistory));
+      }
 
       // Activar automáticamente el modo "Contrato Actualizado"
       if (chkContractUpdated) {
@@ -1499,7 +1602,7 @@
       closeHistoryModal();
 
       saveIndicator.textContent = `🔄 Contrato ${codeIdentifier || ''} cargado (Modo Actualizado)`;
-      alert(`¡Contrato "${codeIdentifier || ''}" cargado con éxito!\n\n• Se ha rellenado toda la información: cliente, items, descripciones, cantidades, precios y fotos.\n• Se activó automáticamente el modo "🔄 Contrato Actualizado" para que al descargar se guarde como versión actualizada.`);
+      alert(`¡Contrato "${codeIdentifier || ''}" cargado con éxito!\n\n• Se ha rellenado toda la información: cliente, items, notas, adelanto (${contractData.adelantoAmount}), saldos y fotos.\n• Se activó automáticamente el modo "🔄 Contrato Actualizado" para que al descargar se guarde como versión actualizada.`);
 
       setTimeout(() => {
         saveIndicator.textContent = '💾 Guardado automático';
@@ -1684,6 +1787,13 @@
       inputAdelanto.value = '0.00';
       updateDiscountVisibility(false);
       condAdelantoPct.textContent = '20%';
+
+      // Resetear nota técnica
+      if (textNotaTecnica) {
+        textNotaTecnica.value = '';
+        autoResizeTextarea(textNotaTecnica);
+        updateNotaTecnicaState();
+      }
 
       // Resetear modo actualizado
       if (chkContractUpdated) chkContractUpdated.checked = false;
