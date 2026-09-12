@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Contrato / Proforma Comercial - HOME LINE</title>
   <style>
 /* ==========================================================================
@@ -1672,7 +1675,6 @@ body {
 }
 
 </style>
-
 </head>
 <body>
 
@@ -2528,15 +2530,18 @@ body {
       ? contractData.adelantoAmount
       : (contractData.adelanto ?? contractData.inputAdelanto ?? contractData.montoAdelanto ?? contractData.valAdelanto ?? '0.00');
     contractData.adelantoAmount = formatTwoDecimals(rawAdelanto);
-    inputAdelanto.value = contractData.adelantoAmount;
+    if (inputAdelanto) {
+      inputAdelanto.value = contractData.adelantoAmount;
+    }
 
-    updateDiscountVisibility(hasDiscount);
-
-    // Condiciones comerciales (% de adelanto)
+    // Condiciones comerciales (% de adelanto) antes de guardar o recalcular
     condAdelantoPct.textContent = contractData.condAdelantoPct || '20%';
 
-    // Renderizar tabla de items
+    // Renderizar tabla de items primero para que los precios estén en el DOM
     renderItemsTable();
+
+    // Actualizar visibilidad de descuento y recalcular totales con todos los datos presentes
+    updateDiscountVisibility(hasDiscount);
     recalculateTotals();
 
     // Registrar eventos estáticos una sola vez
@@ -3729,66 +3734,73 @@ body {
     });
   }
 
-  // Cargar contrato específico (busca en memoria local primero y luego en Google Drive)
+  // Cargar contrato específico (busca en Google Drive primero como fuente oficial, con fallback a memoria local)
   async function loadContractByCode(code) {
-    saveIndicator.textContent = `⏳ Cargando contrato ${code}...`;
+    saveIndicator.textContent = `⏳ Descargando contrato ${code} desde Google Drive...`;
 
-    // 1. Si está en el historial local, cargar al instante
+    const webhookUrl = getDriveWebhookUrl();
+
+    // 1. Consultar PRIMERO en Google Drive (fuente de verdad oficial y actualizada)
+    if (webhookUrl) {
+      try {
+        const getUrl = `${webhookUrl.trim()}${webhookUrl.includes('?') ? '&' : '?'}action=get&code=${encodeURIComponent(code)}&_t=${Date.now()}`;
+        const response = await fetch(getUrl, { method: 'GET', redirect: 'follow' });
+        const resp = await response.json();
+        if (resp && resp.status === 'success' && resp.contractData) {
+          applyLoadedContractData(resp.contractData, code);
+          return;
+        }
+      } catch (fetchErr) {
+        console.warn('Fetch GET contrato falló, probando con JSONP...', fetchErr);
+      }
+
+      // Fallback con JSONP anti-caché
+      const callbackName = 'onContractGet_' + Date.now();
+      const script = document.createElement('script');
+
+      let finished = false;
+      const timer = setTimeout(() => {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        fallbackToLocal(code);
+      }, 10000);
+
+      function cleanup() {
+        clearTimeout(timer);
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[callbackName] = function(resp) {
+        if (finished) return;
+        finished = true;
+        cleanup();
+
+        if (resp && resp.status === 'success' && resp.contractData) {
+          applyLoadedContractData(resp.contractData, code);
+        } else {
+          fallbackToLocal(code);
+        }
+      };
+
+      script.src = `${webhookUrl.trim()}${webhookUrl.includes('?') ? '&' : '?'}action=get&code=${encodeURIComponent(code)}&callback=${callbackName}&_t=${Date.now()}`;
+      document.body.appendChild(script);
+      return;
+    }
+
+    // 2. Si no hay webhook configurado, recurrir a historial local
+    fallbackToLocal(code);
+  }
+
+  function fallbackToLocal(code) {
     const localHistory = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
     const localMatch = localHistory.find(h => h.code === code && h.contractData);
     if (localMatch && localMatch.contractData) {
       applyLoadedContractData(localMatch.contractData, code);
       return;
     }
-
-    // 2. Si no, consultar en Google Drive
-    const webhookUrl = getDriveWebhookUrl();
-
-    // Intento con fetch primero
-    try {
-      const getUrl = `${webhookUrl.trim()}${webhookUrl.includes('?') ? '&' : '?'}action=get&code=${encodeURIComponent(code)}`;
-      const response = await fetch(getUrl, { method: 'GET', redirect: 'follow' });
-      const resp = await response.json();
-      if (resp && resp.status === 'success' && resp.contractData) {
-        applyLoadedContractData(resp.contractData, code);
-        return;
-      }
-    } catch (fetchErr) {
-      console.warn('Fetch GET contrato falló, probando JSONP...', fetchErr);
-    }
-
-    // Fallback con JSONP
-    const callbackName = 'onContractGet_' + Date.now();
-    const script = document.createElement('script');
-
-    let finished = false;
-    const timer = setTimeout(() => {
-      if (finished) return;
-      finished = true;
-      cleanup();
-      alert('Tiempo de espera agotado al descargar el contrato desde Google Drive.');
-    }, 15000);
-
-    function cleanup() {
-      clearTimeout(timer);
-      delete window[callbackName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-
-    window[callbackName] = function(resp) {
-      if (finished) return;
-      finished = true;
-      cleanup();
-
-      if (resp && resp.status === 'success' && resp.contractData) {
-        applyLoadedContractData(resp.contractData, code);
-      } else {
-        alert('No se pudo encontrar la ficha técnica editable de este contrato en Google Drive.');
-      }
-    };
-
-    script.src = `${webhookUrl.trim()}${webhookUrl.includes('?') ? '&' : '?'}action=get&code=${encodeURIComponent(code)}&callback=${callbackName}`;
-    document.body.appendChild(script);
+    alert(`No se pudo descargar la información editable del contrato ${code} desde Google Drive.`);
   }
 
   // Aplicar datos cargados al formulario y activar modo Actualizado
@@ -3800,18 +3812,30 @@ body {
       }
 
       // Normalizar adelantoAmount desde cualquier propiedad previa
-      const rawAdelanto = (realData.adelantoAmount !== undefined && realData.adelantoAmount !== null && realData.adelantoAmount !== '')
-        ? realData.adelantoAmount
-        : (realData.adelanto ?? realData.inputAdelanto ?? realData.montoAdelanto ?? realData.valAdelanto ?? '0.00');
+      let rawAdelanto = '0.00';
+      if (realData.adelantoAmount !== undefined && realData.adelantoAmount !== null && realData.adelantoAmount !== '') {
+        rawAdelanto = realData.adelantoAmount;
+      } else if (realData.adelanto !== undefined && realData.adelanto !== null && realData.adelanto !== '') {
+        rawAdelanto = realData.adelanto;
+      } else if (realData.inputAdelanto !== undefined && realData.inputAdelanto !== null && realData.inputAdelanto !== '') {
+        rawAdelanto = realData.inputAdelanto;
+      } else if (realData.montoAdelanto !== undefined && realData.montoAdelanto !== null && realData.montoAdelanto !== '') {
+        rawAdelanto = realData.montoAdelanto;
+      } else if (realData.valAdelanto !== undefined && realData.valAdelanto !== null && realData.valAdelanto !== '') {
+        rawAdelanto = realData.valAdelanto;
+      }
       realData.adelantoAmount = formatTwoDecimals(rawAdelanto);
 
       // Preservar nota técnica
       realData.notaTecnica = realData.notaTecnica || '';
 
+      // Preservar porcentaje de adelanto
+      realData.condAdelantoPct = realData.condAdelantoPct || '20%';
+
       contractData = Object.assign({}, BLANK_TEMPLATE, realData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(contractData));
 
-      // Cachear en el historial local para futuras aperturas instantáneas
+      // Cachear en el historial local para futuras aperturas
       const localHistory = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
       const hIdx = localHistory.findIndex(h => h.code === codeIdentifier);
       if (hIdx >= 0) {
@@ -3830,8 +3854,19 @@ body {
       initForm();
       closeHistoryModal();
 
+      // Forzar explícitamente el valor en el input y recalcular totales en el DOM
+      if (inputAdelanto) {
+        inputAdelanto.value = contractData.adelantoAmount;
+      }
+      recalculateTotals();
+
       saveIndicator.textContent = `🔄 Contrato ${codeIdentifier || ''} cargado (Modo Actualizado)`;
-      alert(`¡Contrato "${codeIdentifier || ''}" cargado con éxito!\n\n• Se ha rellenado toda la información: cliente, items, notas, adelanto (${contractData.adelantoAmount}), saldos y fotos.\n• Se activó automáticamente el modo "🔄 Contrato Actualizado" para que al descargar se guarde como versión actualizada.`);
+
+      const clientNameDisp = contractData.clientAttention || contractData.clientCompany || 'Cliente';
+      const adelantoDisp = contractData.adelantoAmount;
+      const saldoDisp = valSaldo ? valSaldo.textContent : '0.00';
+
+      alert(`¡Contrato "${codeIdentifier || ''}" cargado con éxito!\n\n• Cliente: ${clientNameDisp}\n• Adelanto registrado: S/ ${adelantoDisp}\n• Saldo pendiente: S/ ${saldoDisp}\n• Se activó el modo "🔄 Contrato Actualizado".`);
 
       setTimeout(() => {
         saveIndicator.textContent = '💾 Guardado automático';
