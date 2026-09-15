@@ -8,9 +8,83 @@
 (() => {
   'use strict';
 
+  // Detección inmediata de dispositivos iOS (iPhone / iPad / iPod) para adaptar impresión sin páginas fantasmas
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+    document.documentElement.classList.add('is-ios-device');
+    if (document.body) {
+      document.body.classList.add('is-ios-device');
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        if (document.body) document.body.classList.add('is-ios-device');
+      });
+    }
+  }
+
+  // Funciones de formato de fecha estrictamente numérico (DD-MM-YYYY)
+  function formatToNumericDate(dateVal) {
+    if (!dateVal) return '';
+    if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
+      const dd = String(dateVal.getDate()).padStart(2, '0');
+      const mm = String(dateVal.getMonth() + 1).padStart(2, '0');
+      const yyyy = dateVal.getFullYear();
+      return `${dd}-${mm}-${yyyy}`;
+    }
+    const s = String(dateVal).trim();
+    // Si ya viene como DD-MM-YYYY o DD/MM/YYYY
+    const matchDmy = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    if (matchDmy) {
+      const dd = matchDmy[1].padStart(2, '0');
+      const mm = matchDmy[2].padStart(2, '0');
+      const yyyy = matchDmy[3];
+      return `${dd}-${mm}-${yyyy}`;
+    }
+    // Si viene como YYYY-MM-DD
+    const matchYmd = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+    if (matchYmd) {
+      const yyyy = matchYmd[1];
+      const mm = matchYmd[2].padStart(2, '0');
+      const dd = matchYmd[3].padStart(2, '0');
+      return `${dd}-${mm}-${yyyy}`;
+    }
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) {
+      const dd = String(parsed.getDate()).padStart(2, '0');
+      const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+      const yyyy = parsed.getFullYear();
+      return `${dd}-${mm}-${yyyy}`;
+    }
+    return s;
+  }
+
+  function formatToNumericDateTime(dateObj) {
+    const d = (dateObj instanceof Date) ? dateObj : new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+  }
+
+  // Normalizar título de contrato a mínimo 3 dígitos (ej. L001, A001)
+  function normalizeContractTitle(title) {
+    if (!title) return title;
+    const isProforma = title.toUpperCase().includes('PROFORMA');
+    if (isProforma) return 'PROFORMA';
+
+    const match = title.match(/(?:CONTRATO\s+)?([LA])\s*(\d+)(?:\s*[\-_ ]\s*(\d{4}))?/i);
+    if (match) {
+      const prefix = match[1].toUpperCase();
+      const num = String(parseInt(match[2], 10)).padStart(3, '0');
+      const yr = match[3] || String(new Date().getFullYear());
+      return `CONTRATO ${prefix}${num} - ${yr}`;
+    }
+    return title;
+  }
+
   const STORAGE_KEY = 'homeline_contract_data_v4';
   const DRIVE_KEY = 'homeline_drive_webhook_url';
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayNumericStr = formatToNumericDate(new Date());
 
   // URL permanente pre-vinculada de Google Apps Script (Empresa Home Line)
   const DEFAULT_DRIVE_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzegupwLcqbv7mrAts8yJAJLDVfEHVDreeueGjuelwSevpuQaQ-XLdkE9mIH-JhYUoB/exec';
@@ -23,16 +97,16 @@
     return DEFAULT_DRIVE_WEBHOOK_URL;
   }
 
-  // Plantilla limpia inicial
+  // Plantilla limpia inicial (Contratos con 3 dígitos ej. A001 o L001)
   const BLANK_TEMPLATE = {
     docType: 'contrato', // 'contrato' | 'proforma'
-    contractTitle: 'CONTRATO A132 - 2026',
+    contractTitle: 'CONTRATO A001 - 2026',
     clientCompany: '',
     clientDoc: '',
     clientAttention: '',
     clientAddress: '',
     clientService: '',
-    clientIssueDate: todayStr,
+    clientIssueDate: todayNumericStr,
     clientContact: '',
     clientDeliveryDate: '',
     greetingTitle: 'Sr.',
@@ -78,8 +152,13 @@
   const clientAddress = document.getElementById('clientAddress');
   const clientService = document.getElementById('clientService');
   const clientIssueDate = document.getElementById('clientIssueDate');
+  const pickerIssueDate = document.getElementById('pickerIssueDate');
+  const btnPickIssueDate = document.getElementById('btnPickIssueDate');
+
   const clientContact = document.getElementById('clientContact');
   const clientDeliveryDate = document.getElementById('clientDeliveryDate');
+  const pickerDeliveryDate = document.getElementById('pickerDeliveryDate');
+  const btnPickDeliveryDate = document.getElementById('btnPickDeliveryDate');
 
   const greetingTitle = document.getElementById('greetingTitle');
   const greetingName = document.getElementById('greetingName');
@@ -194,9 +273,9 @@
     contractData.clientAttention = clientAttention.value;
     contractData.clientAddress = clientAddress.value;
     contractData.clientService = clientService.value;
-    contractData.clientIssueDate = clientIssueDate.value;
+    contractData.clientIssueDate = formatToNumericDate(clientIssueDate.value);
     contractData.clientContact = clientContact.value;
-    contractData.clientDeliveryDate = clientDeliveryDate.value;
+    contractData.clientDeliveryDate = formatToNumericDate(clientDeliveryDate.value);
 
     contractData.greetingTitle = greetingTitle.value;
     contractData.greetingName = greetingName.textContent.trim();
@@ -250,7 +329,7 @@
       btnTypeContrato.classList.add('active');
       btnTypeProforma.classList.remove('active');
       if (contractTitle.value === 'PROFORMA' || !contractTitle.value.trim()) {
-        contractTitle.value = 'CONTRATO A132 - 2026';
+        contractTitle.value = 'CONTRATO A001 - 2026';
       }
       contractTitle.readOnly = false;
     }
@@ -271,15 +350,15 @@
   function initForm() {
     setDocType(contractData.docType || 'contrato');
 
-    contractTitle.value = contractData.contractTitle || 'CONTRATO A132 - 2026';
+    contractTitle.value = contractData.contractTitle ? normalizeContractTitle(contractData.contractTitle) : 'CONTRATO A001 - 2026';
     clientCompany.value = contractData.clientCompany || '';
     clientDoc.value = contractData.clientDoc || '';
     clientAttention.value = contractData.clientAttention || '';
     clientAddress.value = contractData.clientAddress || '';
     clientService.value = contractData.clientService || '';
-    clientIssueDate.value = contractData.clientIssueDate || todayStr;
+    clientIssueDate.value = formatToNumericDate(contractData.clientIssueDate || todayNumericStr);
     clientContact.value = contractData.clientContact || '';
-    clientDeliveryDate.value = contractData.clientDeliveryDate || '';
+    clientDeliveryDate.value = formatToNumericDate(contractData.clientDeliveryDate || '');
 
     greetingTitle.value = contractData.greetingTitle || 'Sr.';
     greetingName.textContent = contractData.greetingName || '';
@@ -436,11 +515,72 @@
         }
       });
 
+      // Enlazar campos de fecha con máscara automática DD-MM-YYYY y calendario emergente
+      function attachDateMaskAndPicker(txtInput, hiddenPicker, triggerBtn) {
+        if (!txtInput) return;
+
+        txtInput.addEventListener('input', () => {
+          let v = txtInput.value.replace(/[^\d]/g, '');
+          if (v.length > 8) v = v.slice(0, 8);
+          let res = '';
+          if (v.length > 4) {
+            res = v.slice(0, 2) + '-' + v.slice(2, 4) + '-' + v.slice(4);
+          } else if (v.length > 2) {
+            res = v.slice(0, 2) + '-' + v.slice(2);
+          } else {
+            res = v;
+          }
+          txtInput.value = res;
+          saveContractData();
+        });
+
+        txtInput.addEventListener('blur', () => {
+          if (txtInput.value.trim()) {
+            txtInput.value = formatToNumericDate(txtInput.value);
+            saveContractData();
+          }
+        });
+
+        if (hiddenPicker) {
+          hiddenPicker.addEventListener('change', () => {
+            if (hiddenPicker.value) {
+              txtInput.value = formatToNumericDate(hiddenPicker.value);
+              saveContractData();
+            }
+          });
+        }
+
+        if (triggerBtn && hiddenPicker) {
+          triggerBtn.addEventListener('click', () => {
+            const m = txtInput.value.match(/^(\d{2})\-(\d{2})\-(\d{4})$/);
+            if (m) {
+              hiddenPicker.value = `${m[3]}-${m[2]}-${m[1]}`;
+            }
+            if (typeof hiddenPicker.showPicker === 'function') {
+              hiddenPicker.showPicker();
+            } else {
+              hiddenPicker.focus();
+              hiddenPicker.click();
+            }
+          });
+        }
+      }
+
+      attachDateMaskAndPicker(clientIssueDate, pickerIssueDate, btnPickIssueDate);
+      attachDateMaskAndPicker(clientDeliveryDate, pickerDeliveryDate, btnPickDeliveryDate);
+
+      // Normalizar número de contrato al salir del campo a mínimo 3 dígitos (ej. L001, A001)
+      contractTitle.addEventListener('blur', () => {
+        if (contractData.docType === 'contrato') {
+          contractTitle.value = normalizeContractTitle(contractTitle.value);
+          saveContractData();
+        }
+      });
+
       // Eventos en campos principales
       [
         contractTitle, clientCompany, clientDoc, clientAttention,
-        clientAddress, clientService, clientIssueDate, clientContact,
-        clientDeliveryDate, greetingTitle,
+        clientAddress, clientService, clientContact, greetingTitle,
         qtyMovilidad, priceMovilidad, inputDescuento, inputAdelanto
       ].forEach(input => {
         if (input) {
@@ -800,15 +940,20 @@
     if (isProforma) return 'PROFORMA';
 
     const titleVal = contractTitle.value.trim().toUpperCase();
-    const match = titleVal.match(/([LA]\d+[\-_ ]*\d{4}|[LA]\d+|[A-Z]*\d+[\-_ ]*\d{4})/i);
+    const match = titleVal.match(/([LA])\s*(\d+)(?:[\-_ ]*(\d{4}))?/i);
     if (match) {
-      let code = match[1].replace(/\s+/g, '').replace(/_/g, '-');
-      if (/^[LA]\d{7,}$/.test(code)) {
-        code = code.slice(0, 4) + '-' + code.slice(4);
-      }
+      const prefix = match[1].toUpperCase();
+      const num = String(parseInt(match[2], 10)).padStart(3, '0');
+      const yr = match[3] || String(new Date().getFullYear());
+      return `${prefix}${num}-${yr}`;
+    }
+
+    const genMatch = titleVal.match(/([A-Z]*\d+[\-_ ]*\d{4}|[A-Z]*\d+)/i);
+    if (genMatch) {
+      let code = genMatch[1].replace(/\s+/g, '').replace(/_/g, '-');
       return code;
     }
-    return 'L' + new Date().getFullYear();
+    return `L001-${new Date().getFullYear()}`;
   }
 
   function generateStandardFileName() {
@@ -938,7 +1083,7 @@
             code: contractCode,
             title: contractTitle.value,
             client: (clientAttention.value.trim() || clientCompany.value.trim() || 'Cliente'),
-            date: new Date().toLocaleDateString('es-PE') + ' ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+            date: formatToNumericDateTime(new Date()),
             subfolder: subfolder,
             fileName: fileName,
             fileUrl: fileUrl,
@@ -1032,7 +1177,7 @@
       code: contractCode,
       title: contractTitle.value,
       client: (clientAttention.value.trim() || clientCompany.value.trim() || 'Cliente'),
-      date: new Date().toLocaleDateString('es-PE') + ' ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+      date: formatToNumericDateTime(new Date()),
       subfolder: (contractCode.startsWith('A') ? 'Contratos Arequipa' : (contractCode.startsWith('PROFORMA') ? 'Proformas' : 'Contratos Lima')),
       fileName: fileName,
       fileUrl: null,
@@ -1121,11 +1266,11 @@
     const elHighestAreq = document.getElementById('highestAreqCode');
     const elNextAreq = document.getElementById('nextAreqCode');
 
-    const highestLimaStr = maxLima > 0 ? `L${maxLima}-${maxLimaYr}` : 'Sin registros';
-    const nextLimaStr = `L${maxLima > 0 ? (maxLima + 1) : 1}-${currentYear}`;
+    const highestLimaStr = maxLima > 0 ? `L${String(maxLima).padStart(3, '0')}-${maxLimaYr}` : 'Sin registros';
+    const nextLimaStr = `L${String(maxLima > 0 ? (maxLima + 1) : 1).padStart(3, '0')}-${currentYear}`;
 
-    const highestAreqStr = maxAreq > 0 ? `A${maxAreq}-${maxAreqYr}` : 'Sin registros';
-    const nextAreqStr = `A${maxAreq > 0 ? (maxAreq + 1) : 1}-${currentYear}`;
+    const highestAreqStr = maxAreq > 0 ? `A${String(maxAreq).padStart(3, '0')}-${maxAreqYr}` : 'Sin registros';
+    const nextAreqStr = `A${String(maxAreq > 0 ? (maxAreq + 1) : 1).padStart(3, '0')}-${currentYear}`;
 
     if (elHighestLima) elHighestLima.textContent = highestLimaStr;
     if (elNextLima) elNextLima.textContent = nextLimaStr;
@@ -1133,14 +1278,16 @@
     if (elNextAreq) elNextAreq.textContent = nextAreqStr;
   }
 
-  // Botón para asignar directamente el siguiente número de Lima
+  // Botón para asignar directamente el siguiente número de Lima (mínimo 3 dígitos ej. L001)
   if (btnUseNextLima) {
     btnUseNextLima.addEventListener('click', () => {
       const code = (nextLimaCode ? nextLimaCode.textContent : '').trim();
       if (!code || code.includes('...')) return;
       setDocType('contrato');
-      const match = code.match(/^([LA]\d+)\-(\d{4})$/i);
-      contractTitle.value = match ? `CONTRATO ${match[1]} - ${match[2]}` : `CONTRATO ${code}`;
+      const match = code.match(/^([LA])(\d+)\-(\d{4})$/i);
+      const num = match ? String(match[2]).padStart(3, '0') : '001';
+      const yr = match ? match[3] : String(new Date().getFullYear());
+      contractTitle.value = `CONTRATO L${num} - ${yr}`;
       closeHistoryModal();
       saveContractData();
       saveIndicator.textContent = `✅ Número asignado: ${contractTitle.value}`;
@@ -1148,14 +1295,16 @@
     });
   }
 
-  // Botón para asignar directamente el siguiente número de Arequipa
+  // Botón para asignar directamente el siguiente número de Arequipa (mínimo 3 dígitos ej. A001)
   if (btnUseNextAreq) {
     btnUseNextAreq.addEventListener('click', () => {
       const code = (nextAreqCode ? nextAreqCode.textContent : '').trim();
       if (!code || code.includes('...')) return;
       setDocType('contrato');
-      const match = code.match(/^([LA]\d+)\-(\d{4})$/i);
-      contractTitle.value = match ? `CONTRATO ${match[1]} - ${match[2]}` : `CONTRATO ${code}`;
+      const match = code.match(/^([LA])(\d+)\-(\d{4})$/i);
+      const num = match ? String(match[2]).padStart(3, '0') : '001';
+      const yr = match ? match[3] : String(new Date().getFullYear());
+      contractTitle.value = `CONTRATO A${num} - ${yr}`;
       closeHistoryModal();
       saveContractData();
       saveIndicator.textContent = `✅ Número asignado: ${contractTitle.value}`;
@@ -1551,6 +1700,12 @@
 
       const isUpdatedBadge = item.isUpdated ? '<span class="badge-updated">Actualizado</span>' : '';
 
+      // Asegurar fecha puramente numérica sin nombres de meses
+      let displayDate = item.date || 'Sin fecha';
+      if (item.date) {
+        displayDate = formatToNumericDate(item.date);
+      }
+
       itemsHtml += `
         <div class="history-item-row" data-index="${index}">
           <div class="history-item-info">
@@ -1560,13 +1715,16 @@
               ${isUpdatedBadge}
             </div>
             <div class="history-meta-sub">
-              <span>📅 ${escapeHtml(item.date || 'Sin fecha')}</span>
+              <span>📅 ${escapeHtml(displayDate)}</span>
               <span>📁 ${escapeHtml(item.subfolder || cityLabel)}</span>
             </div>
           </div>
           <div class="history-actions">
             <button type="button" class="btn-load-contract" data-code="${escapeHtml(code)}" title="Rellenar el formulario con todos los datos de este contrato">
               📥 Cargar
+            </button>
+            <button type="button" class="btn-delete-contract" data-code="${escapeHtml(code)}" data-filename="${escapeHtml(item.fileName || '')}" title="Eliminar este contrato de este dispositivo y de Google Drive">
+              🗑️ Borrar
             </button>
           </div>
         </div>
@@ -1582,6 +1740,61 @@
         loadContractByCode(code);
       });
     });
+
+    // Asignar eventos de clic a los botones de Borrar
+    historyListContainer.querySelectorAll('.btn-delete-contract').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const code = e.currentTarget.dataset.code;
+        const fileName = e.currentTarget.dataset.filename || '';
+        await deleteContractByCode(code, fileName);
+      });
+    });
+  }
+
+  // Eliminar un contrato tanto localmente (navegador) como en la nube (Google Drive)
+  async function deleteContractByCode(code, fileName) {
+    const confirmDel = confirm(
+      `⚠️ ¿Estás seguro de eliminar el contrato "${code}"?\n\n` +
+      `• Se borrará de esta computadora y se moverá a la papelera de Google Drive.\n` +
+      `• También se eliminará del registro general de contratos del equipo.\n\n` +
+      `¿Deseas continuar?`
+    );
+
+    if (!confirmDel) return;
+
+    saveIndicator.textContent = `⏳ Eliminando contrato ${code}...`;
+
+    // 1. Eliminar inmediatamente del almacenamiento local
+    let localHistory = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
+    localHistory = localHistory.filter(h => h.code !== code && (!fileName || h.fileName !== fileName));
+    localStorage.setItem('homeline_local_history', JSON.stringify(localHistory));
+
+    // 2. Actualizar la lista en memoria y re-renderizar la vista
+    cachedContractsList = cachedContractsList.filter(h => h.code !== code && (!fileName || h.fileName !== fileName));
+    updateHighestContractStats(cachedContractsList);
+    updateFilterCounts(cachedContractsList);
+    filterAndRenderHistory();
+
+    // 3. Notificar a Google Apps Script para eliminar archivos y actualizar índice en la nube
+    const webhookUrl = getDriveWebhookUrl();
+    if (webhookUrl) {
+      try {
+        const deleteUrl = `${webhookUrl.trim()}${webhookUrl.includes('?') ? '&' : '?'}action=delete&code=${encodeURIComponent(code)}&fileName=${encodeURIComponent(fileName)}&_t=${Date.now()}`;
+
+        // Llamada con fetch (asíncrona)
+        fetch(deleteUrl, { method: 'GET', mode: 'no-cors' }).catch(() => {});
+
+        // Ping de respaldo mediante imagen para garantizar el despacho en cualquier navegador
+        const probe = new Image();
+        probe.src = `${deleteUrl}&probe=1`;
+      } catch (err) {
+        console.warn('Error enviando solicitud de borrado a Google Drive:', err);
+      }
+    }
+
+    saveIndicator.textContent = `🗑️ Contrato ${code} eliminado con éxito`;
+    setTimeout(() => { saveIndicator.textContent = '💾 Guardado automático'; }, 3500);
   }
 
   // Cargar contrato específico (busca en Google Drive primero como fuente oficial, con fallback a memoria local)
@@ -1902,7 +2115,7 @@
       clientAttention.value = '';
       clientAddress.value = '';
       clientService.value = '';
-      clientIssueDate.value = new Date().toISOString().split('T')[0];
+      clientIssueDate.value = formatToNumericDate(new Date());
       clientContact.value = '';
       clientDeliveryDate.value = '';
       greetingTitle.value = 'Sr.';
@@ -1910,7 +2123,7 @@
 
       // Resetear tipo de documento y título
       setDocType('contrato');
-      contractTitle.value = 'CONTRATO A132 - 2026';
+      contractTitle.value = 'CONTRATO A001 - 2026';
 
       // Resetear estructura de datos en memoria
       contractData = JSON.parse(JSON.stringify(BLANK_TEMPLATE));

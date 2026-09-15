@@ -251,6 +251,71 @@ body {
   color: #000000;
 }
 
+.header-contact a,
+.clean-link {
+  color: inherit !important;
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  -webkit-text-decoration-line: none !important;
+  text-decoration-line: none !important;
+  border-bottom: none !important;
+  outline: none !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer;
+}
+
+.header-contact a:hover,
+.clean-link:hover {
+  color: inherit !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* Campos de fecha con formato DD-MM-YYYY y selector */
+.date-field-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.date-mask-input {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+.date-picker-hidden {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.btn-picker-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.btn-picker-trigger:hover {
+  color: #0f766e;
+  transform: scale(1.15);
+}
+
 /* ==========================================================================
    TÍTULO PRINCIPAL (TIMES NEW ROMAN BOLD)
    ========================================================================== */
@@ -1321,6 +1386,28 @@ body {
   box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
 }
 
+.btn-delete-contract {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.btn-delete-contract:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.15);
+}
+
 /* Banner de Números de Contrato Más Altos (Lima y Arequipa) */
 .highest-numbers-banner {
   display: grid;
@@ -1547,7 +1634,41 @@ body {
     height: auto !important;
   }
 
-  /* Corrección específica para iPhone / iPad (Safari iOS WebKit AirPrint) */
+  /* Ocultar elementos auxiliares de fecha en impresión */
+  .btn-picker-trigger,
+  .date-picker-hidden {
+    display: none !important;
+  }
+  .date-field-container {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Corrección definitiva para iPhone / iPad (Safari iOS WebKit AirPrint) */
+  body.is-ios-device .print-page-border,
+  html.is-ios-device .print-page-border {
+    display: none !important;
+  }
+  body.is-ios-device .contract-page,
+  html.is-ios-device .contract-page {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  body.is-ios-device .contract-frame,
+  html.is-ios-device .contract-frame {
+    border: 2.5px solid var(--primary-yellow) !important;
+    padding: 3.5mm 5mm !important;
+    min-height: 0 !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
   @supports (-webkit-touch-callout: none) {
     .print-page-border {
       display: none !important; /* Desactivar position:fixed que Safari iOS deforma con AirPrint */
@@ -1556,13 +1677,18 @@ body {
       padding: 0 !important;
       margin: 0 !important;
       width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
     }
     .contract-frame {
       border: 2.5px solid var(--primary-yellow) !important; /* Marco simétrico físico de 1cm en los 4 bordes */
-      padding: 6mm 7mm !important;
-      min-height: calc(297mm - 20mm) !important;
+      padding: 3.5mm 5mm !important;
+      min-height: 0 !important;
+      height: auto !important;
       box-sizing: border-box !important;
       margin: 0 !important;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
     }
   }
 }

@@ -135,7 +135,7 @@ function doPost(e) {
         fileName: fileName,
         fileUrl: jsonFile.getUrl(),
         subfolder: subfolderName,
-        date: Utilities.formatDate(new Date(), "GMT-5", "yyyy-MM-dd HH:mm"),
+        date: Utilities.formatDate(new Date(), "GMT-5", "dd-MM-yyyy HH:mm"),
         isUpdated: !!data.isUpdated,
         adelanto: rawAdelanto,
         saldo: contractDataToSave.saldo || "0.00",
@@ -308,6 +308,80 @@ function doGet(e) {
     }
   }
 
+  // Acción 4: Eliminar un contrato tanto de las subcarpetas como de _Datos_Editables y del índice
+  if (action === "delete") {
+    try {
+      var code = (e && e.parameter && e.parameter.code) ? String(e.parameter.code).trim() : "";
+      var fileName = (e && e.parameter && e.parameter.fileName) ? String(e.parameter.fileName).trim() : "";
+      var mainFolder = getOrCreateFolder(DriveApp.getRootFolder(), NOMBRE_CARPETA_DESTINO);
+      var folderDatos = getOrCreateFolder(mainFolder, SUBFOLDER_DATOS);
+      var folderLima = getOrCreateFolder(mainFolder, SUBFOLDER_LIMA);
+      var folderArequipa = getOrCreateFolder(mainFolder, SUBFOLDER_AREQUIPA);
+      var folderProformas = getOrCreateFolder(mainFolder, SUBFOLDER_PROFORMAS);
+
+      var trashedCount = 0;
+
+      // 1. Mover archivo con código en _Datos_Editables a la papelera
+      if (code) {
+        var filesCode = folderDatos.getFilesByName(code + ".json");
+        while (filesCode.hasNext()) {
+          var fc = filesCode.next();
+          fc.setTrashed(true);
+          trashedCount++;
+        }
+      }
+
+      // 2. Mover archivo con nombre completo (.json y .pdf si existiera) en subcarpetas
+      if (fileName) {
+        var namesToTrash = [fileName];
+        if (fileName.toLowerCase().endsWith(".json")) {
+          namesToTrash.push(fileName.replace(/\.json$/i, ".pdf"));
+        } else if (fileName.toLowerCase().endsWith(".pdf")) {
+          namesToTrash.push(fileName.replace(/\.pdf$/i, ".json"));
+        }
+
+        var foldersToCheck = [folderLima, folderArequipa, folderProformas, folderDatos, mainFolder];
+        for (var fIdx = 0; fIdx < foldersToCheck.length; fIdx++) {
+          for (var nIdx = 0; nIdx < namesToTrash.length; nIdx++) {
+            var fIter = foldersToCheck[fIdx].getFilesByName(namesToTrash[nIdx]);
+            while (fIter.hasNext()) {
+              var fObj = fIter.next();
+              fObj.setTrashed(true);
+              trashedCount++;
+            }
+          }
+        }
+      }
+
+      // 3. Eliminar del índice central
+      var idxFiles = folderDatos.getFilesByName(ARCHIVO_INDICE_HISTORIAL);
+      if (idxFiles.hasNext()) {
+        var idxFile = idxFiles.next();
+        var list = [];
+        try {
+          list = JSON.parse(idxFile.getBlob().getDataAsString() || "[]");
+        } catch (err) {
+          list = [];
+        }
+        var updatedList = list.filter(function(item) {
+          if (code && item.code === code) return false;
+          if (fileName && (item.fileName === fileName || item.fileName === fileName.replace(/\.json$/i, ".pdf"))) return false;
+          return true;
+        });
+        idxFile.setContent(JSON.stringify(updatedList, null, 2));
+      }
+
+      return outputJson({
+        status: "success",
+        message: "Contrato " + code + " eliminado con éxito de Google Drive",
+        code: code,
+        trashedFiles: trashedCount
+      }, callback);
+    } catch (err) {
+      return outputJson({ status: "error", message: err.toString() }, callback);
+    }
+  }
+
   // Respuesta por defecto: comprobación de salud del webhook en formato JSON
   return ContentService.createTextOutput(JSON.stringify({
     status: "active",
@@ -372,12 +446,22 @@ function updateHistoryIndex(folderDatos, entry) {
   }
 }
 
+function pad3(num) {
+  var s = String(num || 0);
+  while (s.length < 3) s = "0" + s;
+  return s;
+}
+
 function extractContractCode(fileName) {
-  var clean = fileName.replace(/\.pdf$/i, "");
-  var match = clean.match(/([LA]\d+[\-_]\d{4}|[LA]\d+|PROFORMA)/i);
+  var clean = fileName.replace(/\.pdf$/i, "").replace(/\.json$/i, "");
+  var match = clean.match(/([LA])\s*(\d+)(?:[\-_ ]*(\d{4}))?/i);
   if (match) {
-    return match[1].toUpperCase().replace("_", "-");
+    var prefix = match[1].toUpperCase();
+    var num = pad3(parseInt(match[2], 10));
+    var yr = match[3] || String(new Date().getFullYear());
+    return prefix + num + "-" + yr;
   }
+  if (/PROFORMA/i.test(clean)) return "PROFORMA";
   return "DOC_" + Utilities.formatDate(new Date(), "GMT-5", "yyyyMMdd_HHmm");
 }
 
@@ -402,7 +486,7 @@ function calculateDriveHighestStats(list, folderLima, folderArequipa) {
     if (!str) return;
     str = String(str).toUpperCase();
 
-    // Lima: Buscar L seguido de números (ej. L263-2026, L132, etc.)
+    // Lima: Buscar L seguido de números (ej. L263-2026, L132, L001, etc.)
     var matchL = str.match(/(?:^|[^a-zA-Z0-9])L\s*(\d+)(?:[\-_ ]*(\d{4}))?/i);
     if (matchL) {
       var numL = parseInt(matchL[1], 10);
@@ -412,7 +496,7 @@ function calculateDriveHighestStats(list, folderLima, folderArequipa) {
       }
     }
 
-    // Arequipa: Buscar A seguido de números (ej. A156-2026, A132, etc.)
+    // Arequipa: Buscar A seguido de números (ej. A156-2026, A132, A001, etc.)
     var matchA = str.match(/(?:^|[^a-zA-Z0-9])A\s*(\d+)(?:[\-_ ]*(\d{4}))?/i);
     if (matchA) {
       var numA = parseInt(matchA[1], 10);
@@ -447,13 +531,13 @@ function calculateDriveHighestStats(list, folderLima, folderArequipa) {
   return {
     highestLima: {
       number: maxLima,
-      code: maxLima > 0 ? ("L" + maxLima + "-" + maxLimaYr) : "Sin registros",
-      nextCode: "L" + (maxLima > 0 ? (maxLima + 1) : 1) + "-" + currentYear
+      code: maxLima > 0 ? ("L" + pad3(maxLima) + "-" + maxLimaYr) : "Sin registros",
+      nextCode: "L" + pad3(maxLima > 0 ? (maxLima + 1) : 1) + "-" + currentYear
     },
     highestArequipa: {
       number: maxAreq,
-      code: maxAreq > 0 ? ("A" + maxAreq + "-" + maxAreqYr) : "Sin registros",
-      nextCode: "A" + (maxAreq > 0 ? (maxAreq + 1) : 1) + "-" + currentYear
+      code: maxAreq > 0 ? ("A" + pad3(maxAreq) + "-" + maxAreqYr) : "Sin registros",
+      nextCode: "A" + pad3(maxAreq > 0 ? (maxAreq + 1) : 1) + "-" + currentYear
     }
   };
 }
