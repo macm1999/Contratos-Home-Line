@@ -173,7 +173,13 @@
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return Object.assign({}, BLANK_TEMPLATE, JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        const data = Object.assign({}, BLANK_TEMPLATE, parsed);
+        const cand = parsed.adelantoAmount || parsed.adelanto || parsed.montoAdelanto || parsed.inputAdelanto || '0.00';
+        data.adelantoAmount = ((parseFloat(cand) || 0).toFixed(2));
+        data.adelanto = data.adelantoAmount;
+        data.montoAdelanto = data.adelantoAmount;
+        return data;
       }
     } catch (e) {
       console.warn('Error cargando contrato guardado:', e);
@@ -202,8 +208,24 @@
       contractData.notaTecnica = textNotaTecnica.value;
     }
     contractData.discountAmount = formatTwoDecimals(inputDescuento.value);
-    contractData.adelantoAmount = formatTwoDecimals(inputAdelanto.value);
-    contractData.condAdelantoPct = condAdelantoPct.textContent.trim();
+
+    const adelantoVal = formatTwoDecimals(inputAdelanto ? inputAdelanto.value : '0.00');
+    contractData.adelantoAmount = adelantoVal;
+    contractData.adelanto = adelantoVal;
+    contractData.montoAdelanto = adelantoVal;
+    contractData.inputAdelanto = adelantoVal;
+    contractData.valAdelanto = adelantoVal;
+    contractData.condAdelantoPct = condAdelantoPct ? condAdelantoPct.textContent.trim() : '20%';
+
+    if (valSaldo) {
+      contractData.saldo = valSaldo.textContent ? valSaldo.textContent.trim() : '0.00';
+    }
+    if (valSubtotal) {
+      contractData.subtotal = valSubtotal.textContent ? valSubtotal.textContent.trim() : '0.00';
+    }
+    if (valTotalSinIgv) {
+      contractData.total = valTotalSinIgv.textContent ? valTotalSinIgv.textContent.trim() : '0.00';
+    }
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(contractData));
@@ -294,13 +316,40 @@
     chkDescuento.checked = hasDiscount;
     inputDescuento.value = formatTwoDecimals(contractData.discountAmount || '0.00');
 
-    // Recuperar adelanto asegurando compatibilidad con cualquier variante
-    const rawAdelanto = (contractData.adelantoAmount !== undefined && contractData.adelantoAmount !== null && contractData.adelantoAmount !== '')
-      ? contractData.adelantoAmount
-      : (contractData.adelanto ?? contractData.inputAdelanto ?? contractData.montoAdelanto ?? contractData.valAdelanto ?? '0.00');
-    contractData.adelantoAmount = formatTwoDecimals(rawAdelanto);
+    // Recuperar adelanto asegurando compatibilidad con cualquier variante y persistencia en .json
+    const adelantoCandidates = [
+      contractData.adelantoAmount,
+      contractData.adelanto,
+      contractData.montoAdelanto,
+      contractData.inputAdelanto,
+      contractData.valAdelanto
+    ];
+    let rawAdelanto = '0.00';
+    for (const cand of adelantoCandidates) {
+      if (cand !== undefined && cand !== null && cand !== '') {
+        const num = parseFloat(cand);
+        if (!isNaN(num) && num > 0) {
+          rawAdelanto = cand;
+          break;
+        }
+      }
+    }
+    if (rawAdelanto === '0.00') {
+      for (const cand of adelantoCandidates) {
+        if (cand !== undefined && cand !== null && cand !== '') {
+          rawAdelanto = cand;
+          break;
+        }
+      }
+    }
+    const formattedAdelanto = formatTwoDecimals(rawAdelanto);
+    contractData.adelantoAmount = formattedAdelanto;
+    contractData.adelanto = formattedAdelanto;
+    contractData.montoAdelanto = formattedAdelanto;
+    contractData.inputAdelanto = formattedAdelanto;
+    contractData.valAdelanto = formattedAdelanto;
     if (inputAdelanto) {
-      inputAdelanto.value = contractData.adelantoAmount;
+      inputAdelanto.value = formattedAdelanto;
     }
 
     // Condiciones comerciales (% de adelanto) antes de guardar o recalcular
@@ -826,18 +875,40 @@
     const contractCode = extractCurrentContractCode();
     const isUpdated = !!(chkContractUpdated && chkContractUpdated.checked);
 
+    const formattedAdelanto = formatTwoDecimals(inputAdelanto ? inputAdelanto.value : '0.00');
+    const subtotalText = valSubtotal ? valSubtotal.textContent.trim() : '0.00';
+    const saldoText = valSaldo ? valSaldo.textContent.trim() : '0.00';
+    const totalText = (valTotalSinIgv && valTotalSinIgv.parentElement.style.display !== 'none')
+      ? valTotalSinIgv.textContent.trim()
+      : subtotalText;
+
+    // Garantizar que contractData tenga todos los campos sincronizados antes de enviar
+    contractData.adelantoAmount = formattedAdelanto;
+    contractData.adelanto = formattedAdelanto;
+    contractData.montoAdelanto = formattedAdelanto;
+    contractData.inputAdelanto = formattedAdelanto;
+    contractData.valAdelanto = formattedAdelanto;
+    contractData.subtotal = subtotalText;
+    contractData.saldo = saldoText;
+    contractData.total = totalText;
+
     saveIndicator.textContent = '⏳ Guardando información en Google Drive...';
     btnSaveDrive.disabled = true;
 
     try {
-      // Empaquetar exclusivamente la información editable (.json)
+      // Empaquetar exclusivamente la información editable (.json) con adelanto y saldo completos
       const payload = {
         fileName: fileName,
         contractCode: contractCode,
         contractTitle: contractTitle.value,
         docType: contractData.docType || 'contrato',
         clientName: (clientAttention.value.trim() || clientCompany.value.trim() || 'Cliente'),
-        totalAmount: valSaldo.textContent,
+        adelanto: formattedAdelanto,
+        adelantoAmount: formattedAdelanto,
+        montoAdelanto: formattedAdelanto,
+        subtotal: subtotalText,
+        saldo: saldoText,
+        totalAmount: totalText,
         isUpdated: isUpdated,
         contractData: contractData
       };
@@ -1170,8 +1241,18 @@
       try {
         const resp = JSON.parse(text);
         if (resp && resp.status === 'success') {
-          cachedContractsList = resp.contracts || [];
-          // Sincronizar memoria local estrictamente con lo que existe en Drive
+          const driveContracts = resp.contracts || [];
+          const existingLocal = JSON.parse(localStorage.getItem('homeline_local_history') || '[]');
+
+          // Conservar contractData local si ya lo tenemos guardado
+          cachedContractsList = driveContracts.map(dc => {
+            const localMatch = existingLocal.find(el => el.code === dc.code && el.contractData);
+            if (localMatch) {
+              return Object.assign({}, dc, { contractData: localMatch.contractData });
+            }
+            return dc;
+          });
+
           localStorage.setItem('homeline_local_history', JSON.stringify(cachedContractsList));
           renderHistoryList(cachedContractsList, false);
           return;
@@ -1580,20 +1661,52 @@
         realData = Object.assign({}, loadedData, loadedData.contractData);
       }
 
-      // Normalizar adelantoAmount desde cualquier propiedad previa
+      // Buscar el adelanto en todas las variantes posibles tanto en realData como en loadedData y contractData
+      const candidates = [
+        realData.adelantoAmount,
+        realData.adelanto,
+        realData.montoAdelanto,
+        realData.inputAdelanto,
+        realData.valAdelanto,
+        loadedData.adelantoAmount,
+        loadedData.adelanto,
+        loadedData.montoAdelanto,
+        loadedData.inputAdelanto,
+        loadedData.valAdelanto,
+        (loadedData.contractData ? loadedData.contractData.adelantoAmount : null),
+        (loadedData.contractData ? loadedData.contractData.adelanto : null),
+        (loadedData.contractData ? loadedData.contractData.montoAdelanto : null),
+        (loadedData.contractData ? loadedData.contractData.inputAdelanto : null),
+        (loadedData.contractData ? loadedData.contractData.valAdelanto : null)
+      ];
+
       let rawAdelanto = '0.00';
-      if (realData.adelantoAmount !== undefined && realData.adelantoAmount !== null && realData.adelantoAmount !== '') {
-        rawAdelanto = realData.adelantoAmount;
-      } else if (realData.adelanto !== undefined && realData.adelanto !== null && realData.adelanto !== '') {
-        rawAdelanto = realData.adelanto;
-      } else if (realData.inputAdelanto !== undefined && realData.inputAdelanto !== null && realData.inputAdelanto !== '') {
-        rawAdelanto = realData.inputAdelanto;
-      } else if (realData.montoAdelanto !== undefined && realData.montoAdelanto !== null && realData.montoAdelanto !== '') {
-        rawAdelanto = realData.montoAdelanto;
-      } else if (realData.valAdelanto !== undefined && realData.valAdelanto !== null && realData.valAdelanto !== '') {
-        rawAdelanto = realData.valAdelanto;
+      // 1. Primero buscar si hay alguno con valor numérico mayor a 0
+      for (const cand of candidates) {
+        if (cand !== undefined && cand !== null && cand !== '') {
+          const num = parseFloat(cand);
+          if (!isNaN(num) && num > 0) {
+            rawAdelanto = cand;
+            break;
+          }
+        }
       }
-      realData.adelantoAmount = formatTwoDecimals(rawAdelanto);
+      // 2. Si ninguno es > 0, tomar el primer valor definido no vacío
+      if (rawAdelanto === '0.00') {
+        for (const cand of candidates) {
+          if (cand !== undefined && cand !== null && cand !== '') {
+            rawAdelanto = cand;
+            break;
+          }
+        }
+      }
+
+      const formattedAdelanto = formatTwoDecimals(rawAdelanto);
+      realData.adelantoAmount = formattedAdelanto;
+      realData.adelanto = formattedAdelanto;
+      realData.montoAdelanto = formattedAdelanto;
+      realData.inputAdelanto = formattedAdelanto;
+      realData.valAdelanto = formattedAdelanto;
 
       // Preservar nota técnica
       realData.notaTecnica = realData.notaTecnica || '';
@@ -1602,6 +1715,12 @@
       realData.condAdelantoPct = realData.condAdelantoPct || '20%';
 
       contractData = Object.assign({}, BLANK_TEMPLATE, realData);
+      contractData.adelantoAmount = formattedAdelanto;
+      contractData.adelanto = formattedAdelanto;
+      contractData.montoAdelanto = formattedAdelanto;
+      contractData.inputAdelanto = formattedAdelanto;
+      contractData.valAdelanto = formattedAdelanto;
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(contractData));
 
       // Cachear en el historial local para futuras aperturas
@@ -1625,9 +1744,10 @@
 
       // Forzar explícitamente el valor en el input y recalcular totales en el DOM
       if (inputAdelanto) {
-        inputAdelanto.value = contractData.adelantoAmount;
+        inputAdelanto.value = formattedAdelanto;
       }
       recalculateTotals();
+      saveContractData(); // Garantizar que se guarde con el adelanto activo
 
       saveIndicator.textContent = `🔄 Contrato ${codeIdentifier || ''} cargado (Modo Actualizado)`;
 
@@ -1661,7 +1781,7 @@
       reader.onload = (event) => {
         try {
           const parsed = JSON.parse(event.target.result);
-          if (parsed && (parsed.items || parsed.contractTitle || parsed.clientCompany)) {
+          if (parsed && (parsed.items || parsed.contractTitle || parsed.clientCompany || parsed.contractData)) {
             applyLoadedContractData(parsed, file.name.replace(/\.json$/i, ''));
           } else {
             alert('El archivo seleccionado no tiene el formato válido de un contrato Home Line.');

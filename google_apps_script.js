@@ -81,6 +81,25 @@ function doPost(e) {
     var jsonFile = null;
 
     if (contractDataToSave) {
+      // Garantizar que la información del adelanto y saldo esté presente y explícita en el archivo .json
+      var rawAdelanto = data.adelanto || data.adelantoAmount || data.montoAdelanto ||
+                        contractDataToSave.adelantoAmount || contractDataToSave.adelanto ||
+                        contractDataToSave.montoAdelanto || contractDataToSave.inputAdelanto ||
+                        contractDataToSave.valAdelanto || "0.00";
+
+      contractDataToSave.adelantoAmount = rawAdelanto;
+      contractDataToSave.adelanto = rawAdelanto;
+      contractDataToSave.montoAdelanto = rawAdelanto;
+      contractDataToSave.inputAdelanto = rawAdelanto;
+      contractDataToSave.valAdelanto = rawAdelanto;
+
+      if (data.saldo || contractDataToSave.saldo) {
+        contractDataToSave.saldo = data.saldo || contractDataToSave.saldo;
+      }
+      if (data.totalAmount || contractDataToSave.total || contractDataToSave.totalAmount) {
+        contractDataToSave.total = data.totalAmount || contractDataToSave.total || contractDataToSave.totalAmount;
+      }
+
       var jsonContent = JSON.stringify(contractDataToSave, null, 2);
 
       // Guardar en la subcarpeta correspondiente (Lima, Arequipa o Proformas)
@@ -117,7 +136,10 @@ function doPost(e) {
         fileUrl: jsonFile.getUrl(),
         subfolder: subfolderName,
         date: Utilities.formatDate(new Date(), "GMT-5", "yyyy-MM-dd HH:mm"),
-        isUpdated: !!data.isUpdated
+        isUpdated: !!data.isUpdated,
+        adelanto: rawAdelanto,
+        saldo: contractDataToSave.saldo || "0.00",
+        total: contractDataToSave.total || "0.00"
       });
     } else {
       throw new Error("No se recibieron datos de contrato válidos para guardar.");
@@ -272,6 +294,13 @@ function doGet(e) {
         var contractJson = JSON.parse(targetFile.next().getBlob().getDataAsString());
         return outputJson({ status: "success", contractData: contractJson }, callback);
       } else {
+        // Búsqueda alternativa en todo el directorio por si el archivo fue guardado con nombre completo
+        var searchFiles = mainFolder.searchFiles("title contains '" + code + "' and title contains '.json' and trashed = false");
+        if (searchFiles.hasNext()) {
+          var fallbackFile = searchFiles.next();
+          var contractJson = JSON.parse(fallbackFile.getBlob().getDataAsString());
+          return outputJson({ status: "success", contractData: contractJson }, callback);
+        }
         return outputJson({ status: "not_found", message: "Contrato no encontrado en la nube" }, callback);
       }
     } catch (err) {
